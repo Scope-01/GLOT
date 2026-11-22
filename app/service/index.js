@@ -1,0 +1,73 @@
+// Glass Home - Tizen web service entry point (app id DclHome001.Photos).
+//
+// The TV app starts this service (tizen.application.launchAppControl with the
+// service operation). It keeps running after the app is hidden or closed, and
+// serves the photo/shortcut website on the LAN. With a public certificate it
+// does not start by itself after a reboot: the app starts it again.
+//
+// The runtime calls onStart once and onRequest for every later launch request,
+// so both just make sure the server is up. Node 12 API only.
+'use strict';
+var path = require('path');
+
+var service = null;
+var homeControl = null;
+var starting = false;
+
+function log() {
+  try {
+    var args = Array.prototype.slice.call(arguments);
+    console.log.apply(console, ['[GlassHome.Photos]'].concat(args));
+  } catch (e) { /* logging must never throw */ }
+}
+
+// Separate from the website, so the Home tool can reach it if port 8090 is busy.
+function startHomeControl() {
+  if (homeControl) return;
+  try {
+    var store = require('./store.js');
+    var pkg = require('./config.json').packageId;
+    var candidates = [{ dir: '/opt/usr/home/owner/apps_rw/' + pkg + '/data/homecontrol' }];
+    if (process.env.HOME) candidates.push({ dir: path.join(process.env.HOME, 'apps_rw', pkg, 'data', 'homecontrol') });
+    candidates.push({ dir: '/home/owner/share/' + pkg + '/homecontrol' });
+    var picked = store.pickDataDir(candidates, log);
+    homeControl = require('./home-control.js').start({ dir: picked ? picked.dir : null, log: log });
+  } catch (e) {
+    log('home control failed: ' + (e && e.message));
+  }
+}
+
+function start() {
+  startHomeControl();
+  if (service || starting) return;
+  starting = true;
+  try {
+    var core = require('./server.js');
+    var s = core.createService({ appDir: path.join(__dirname, '..'), log: log, restart: function () { process.exit(0); } });
+    s.start(function (err) {
+      starting = false;
+      if (err) { log('start failed: ' + (err && err.message)); return; }
+      service = s;
+    });
+  } catch (e) {
+    starting = false;
+    log('fatal: ' + (e && e.stack ? e.stack : e));
+  }
+}
+
+function stop() {
+  var s = service;
+  service = null;
+  if (s) { try { s.stop(); } catch (e) { log('stop failed: ' + e.message); } }
+  if (homeControl) { try { homeControl.close(); } catch (e) { log('stop failed: ' + e.message); } homeControl = null; }
+}
+
+module.exports.onStart = function () { start(); };
+module.exports.onRequest = function () { start(); };
+module.exports.onExit = function () { stop(); };
+module.exports.onStop = function () { stop(); };
+
+if (typeof process !== 'undefined' && process && typeof process.on === 'function') {
+  process.on('uncaughtException', function (e) { log('uncaught: ' + (e && e.stack ? e.stack : e)); });
+  process.on('unhandledRejection', function (e) { log('unhandled rejection: ' + (e && e.stack ? e.stack : e)); });
+}
