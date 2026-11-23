@@ -1233,6 +1233,7 @@
     root.classList.toggle('no-apps-hint', !a.appsHint);
     root.classList.toggle('no-photo-credit', !a.photoCredits);
     root.classList.toggle('no-video-credit', !a.videoCredits);
+    if (GH.setPixelShift) GH.setPixelShift(a.pixelShift !== false);
     cfg.longPressMs = a.holdMs;
     if (guestsSettings.tile !== guestTileOn) { guestTileOn = guestsSettings.tile; layoutChangedGuests = true; }
     backOnHome = a.backOnHome;
@@ -1271,7 +1272,13 @@
     if (backdrop) { backdrop.setTiming(s.photos.intervalSec * 1000, stillNow()); updatePhotos(); }
     cfg.video.stopAfterMin = s.screensaver.videoStopMin;
     cfg.video.quality = s.screensaver.quality;
-    if (GH.setAmbient) GH.setAmbient({ afterMs: s.screensaver.afterMin * 60000, nightEnabled: s.night.enabled, nightFrom: s.night.from, nightTo: s.night.to });
+    cfg.video.player = s.screensaver.player;
+    if (GH.setAmbient) {
+      GH.setAmbient({
+        afterMs: s.screensaver.afterMin * 60000, nightEnabled: s.night.enabled, nightFrom: s.night.from, nightTo: s.night.to,
+        followSun: s.night.followSun, latitude: s.weather.latitude, longitude: s.weather.longitude
+      });
+    }
     if (GH.Weather) GH.Weather.configure(s.weather);
     guestsSettings = s.guests || guestsSettings;
     if (s.advanced) applyAdvanced(s.advanced);

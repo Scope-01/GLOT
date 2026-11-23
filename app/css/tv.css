@@ -959,7 +959,20 @@ html.no-photo-credit #credit,
 html.no-video-credit #video-credit { display: none; }
 html.glass-clear { --glass: rgba(28, 28, 30, 0.22); --glass-strong: rgba(28, 28, 30, 0.45); }
 html.glass-frosted { --glass: rgba(28, 28, 30, 0.68); --glass-strong: rgba(28, 28, 30, 0.84); }
-html.lite .bg-layer img { will-change: auto; }
+/* Daytime (Follow the sun): lighter, brighter glass; text stays white. */
+html.daylight { --glass: rgba(120, 122, 132, 0.40); --glass-strong: rgba(120, 122, 132, 0.62); }
+html.daylight.glass-clear { --glass: rgba(120, 122, 132, 0.24); --glass-strong: rgba(120, 122, 132, 0.46); }
+html.daylight.glass-frosted { --glass: rgba(120, 122, 132, 0.56); --glass-strong: rgba(120, 122, 132, 0.74); }
+/* OLED care: Home's text and widgets walk a few pixels every few minutes. */
+html.pixel-shift #clock,
+html.pixel-shift #brand,
+html.pixel-shift #label,
+html.pixel-shift #credit,
+html.pixel-shift #video-credit,
+html.pixel-shift #shelf-text,
+html.pixel-shift #apps-hint {
+  translate: var(--shift-x, 0) var(--shift-y, 0);
+}html.lite .bg-layer img { will-change: auto; }
 /* Blur is the heaviest thing on this screen: no blur, darker glass instead. */
 html.lite { --glass: rgba(28, 28, 30, 0.66); --glass-strong: rgba(28, 28, 30, 0.84); }
 html.lite * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }

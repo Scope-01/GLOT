@@ -251,8 +251,12 @@
   }
 
   // ---------- the TV's own player (after the live card has been used) ----------
+  // The TV's own player is sharper (full 4K on the video layer, with the TV's
+  // picture processing) but can't crossfade. It is the default; 'web' keeps
+  // page video unless the live card has made that impossible.
   function avUsable() {
-    return !!(window.webapis && webapis.avplay && GH.platform && GH.platform.tvWindowUsed);
+    if (!(window.webapis && webapis.avplay)) return false;
+    return cfg.player !== 'web' || !!(GH.platform && GH.platform.tvWindowUsed);
   }
   function avClose() {
     try { webapis.avplay.stop(); } catch (e) { /* not playing */ }

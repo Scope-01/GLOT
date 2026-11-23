@@ -33,14 +33,14 @@ function defaults() {
     name: 'GLOT',
     clock24: false,
     photos: { intervalSec: 45, drift: true, disabled: [] },
-    screensaver: { afterMin: 3, videoStopMin: 60, quality: '1080' },
-    night: { enabled: true, from: '20:00', to: '06:00' },
+    screensaver: { afterMin: 3, videoStopMin: 60, quality: '1080', player: 'tv' },
+    night: { enabled: true, from: '20:00', to: '06:00', followSun: true },
     weather: { enabled: true, place: '', latitude: null, longitude: null, unit: 'celsius', week: true },
     guests: { tile: false, showPassword: false },
     advanced: {
       clockSize: 'medium', showBrand: true, glass: 'normal', tileSize: 'normal', appsHint: true,
       photoCredits: true, videoCredits: true, holdMs: 700, backOnHome: 'aerials', hiddenMenu: true,
-      addTile: true, css: ''
+      addTile: true, pixelShift: true, css: ''
     },
     design: {
       face: 'tv', accent: 'auto', background: 'photos', gradient: 'midnight', captions: 'en', livePreview: true,
@@ -178,11 +178,14 @@ function merge(current, patch) {
     if (q === '4khdr') q = '4k';
     if (['1080', '4k'].indexOf(q) >= 0) s.screensaver.quality = q;
   });
+  // 'tv': the TV's own player (sharpest); 'web': page video with crossfades.
+  s.screensaver.player = saver.player === 'web' ? 'web' : 'tv';
 
   var night = pick('night');
   s.night.enabled = night.enabled !== false;
   if (TIME.test(night.from)) s.night.from = night.from;
   if (TIME.test(night.to)) s.night.to = night.to;
+  s.night.followSun = night.followSun !== false;
 
   var wx = pick('weather');
   s.weather.enabled = wx.enabled !== false;
@@ -211,6 +214,7 @@ function merge(current, patch) {
   a.backOnHome = oneOf(adv.backOnHome, ['aerials', 'nothing'], a.backOnHome);
   a.hiddenMenu = adv.hiddenMenu !== false;
   a.addTile = adv.addTile !== false;
+  a.pixelShift = adv.pixelShift !== false;
   // Custom CSS for the TV screen only; it can't run code. Size-limited.
   a.css = typeof adv.css === 'string' ? adv.css.replace(/\u0000/g, '').slice(0, 20000) : '';
 

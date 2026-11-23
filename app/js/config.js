@@ -36,7 +36,7 @@
     photoService: true,
     // Keep equal to VERSION in service/server.js. After an update the app asks
     // an older running service to restart once, so no power cut is needed.
-    serviceVersion: '1.13.0',
+    serviceVersion: '1.14.0',
 
     // true on older TVs where apps won't start from the dock (on a 2018 TV
     // Netflix stayed black and Prime Video crashed): apps with a `storeId` are
@@ -85,6 +85,7 @@
       enabled: true,
       stopAfterMin: 60,
       quality: '1080',           // '1080' or '4k'; set on the phone website
+      player: 'tv',              // 'tv' (the TV's own player, sharpest) or 'web' (crossfades)
       captions: 'en',            // Apple's captions: 'en', 'ar' or 'off' (Design tab)
       clips: window.GH_AERIALS || []
     },

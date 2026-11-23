@@ -526,8 +526,15 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
             <option value="1080">1080p</option><option value="4k">4K</option>
           </select>
         </div>
+        <div class="optrow">
+          <span>Video player</span>
+          <select id="set-player">
+            <option value="tv">TV player (sharpest)</option><option value="web">Web (crossfades)</option>
+          </select>
+        </div>
         <p class="hint">On the aerials, Left and Right change the scene and any other button returns to Home. 4K uses more internet (about 330 MB for a typical scene) and steps down if the TV or connection can’t keep up.</p>
         <p class="hint">Photos take over when video stops, so a TV left on doesn’t stream all day.</p>
+        <p class="hint">The TV player shows the aerials at full sharpness with the TV’s own picture processing and fades through black between scenes. Web crossfades between scenes but is softer, and after you’ve used a live input card it switches to the TV player until GLOT restarts.</p>
       </div>
       <div class="card glass">
         <h2>Your own videos</h2>
@@ -590,13 +597,25 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
       </div>
       <div class="sect-title">More</div>
       <div class="card glass">
-        <h2>Evening dimming</h2>
+        <h2>Day and night</h2>
         <div class="optrow">
-          <span>Dim the photos</span>
+          <span>Dim the photos at night</span>
           <div class="seg small" id="set-night"><button type="button" data-v="on">On</button><button type="button" data-v="off">Off</button></div>
         </div>
-        <div class="optrow"><span>From</span><input id="set-night-from" type="time"></div>
-        <div class="optrow"><span>Until</span><input id="set-night-to" type="time"></div>
+        <div class="optrow">
+          <span>Follow the sun</span>
+          <div class="seg small" id="set-sun"><button type="button" data-v="on">On</button><button type="button" data-v="off">Off</button></div>
+        </div>
+        <div id="night-times">
+          <div class="optrow"><span>From</span><input id="set-night-from" type="time"></div>
+          <div class="optrow"><span>Until</span><input id="set-night-to" type="time"></div>
+        </div>
+        <p class="hint" id="sun-hint"></p>
+        <div class="optrow gap-top">
+          <span>Screen care (OLED)</span>
+          <div class="seg small" id="set-shift"><button type="button" data-v="on">On</button><button type="button" data-v="off">Off</button></div>
+        </div>
+        <p class="hint">Screen care moves Home’s clock, text and widgets a few pixels every few minutes, too little to notice, so nothing burns into the screen.</p>
       </div>
       <div class="optrow card glass">
         <span>Advanced settings</span>
@@ -1204,6 +1223,17 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     setSeg('set-night', conf.night.enabled ? 'on' : 'off');
     if (!typing($('set-night-from'))) $('set-night-from').value = conf.night.from;
     if (!typing($('set-night-to'))) $('set-night-to').value = conf.night.to;
+    setSelect('set-player', conf.screensaver.player || 'tv');
+    setSeg('set-sun', conf.night.followSun !== false ? 'on' : 'off');
+    setSeg('set-shift', conf.advanced && conf.advanced.pixelShift === false ? 'off' : 'on');
+    var hasPlace = typeof conf.weather.latitude === 'number';
+    var sunOn = conf.night.followSun !== false && hasPlace;
+    $('night-times').hidden = sunOn;
+    $('sun-hint').textContent = sunOn
+      ? 'Home dims from sunset to sunrise in ' + (conf.weather.place || 'your weather place') + ', and its glass turns lighter while the sun is up.'
+      : conf.night.followSun !== false
+        ? 'Set a place in Weather (above) to follow the sun. Until then the times above are used.'
+        : 'Home dims between the times above and stays dark all day.';
     setSeg('set-wx', conf.weather.enabled ? 'on' : 'off');
     setSeg('set-wx-week', conf.weather.week ? 'on' : 'off');
     setSeg('set-wx-unit', conf.weather.unit);
@@ -1228,6 +1258,9 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
   $('set-after').addEventListener('change', function () { save({ screensaver: { afterMin: +$('set-after').value } }); });
   $('set-videostop').addEventListener('change', function () { save({ screensaver: { videoStopMin: +$('set-videostop').value } }); });
   $('set-quality').addEventListener('change', function () { save({ screensaver: { quality: $('set-quality').value } }); });
+  $('set-player').addEventListener('change', function () { save({ screensaver: { player: $('set-player').value } }); });
+  onSeg('set-sun', function (v) { save({ night: { followSun: v === 'on' } }); });
+  onSeg('set-shift', function (v) { save({ advanced: { pixelShift: v === 'on' } }); });
   onSeg('set-night', function (v) { save({ night: { enabled: v === 'on' } }); });
   $('set-night-from').addEventListener('change', function () { if ($('set-night-from').value) save({ night: { from: $('set-night-from').value } }); });
   $('set-night-to').addEventListener('change', function () { if ($('set-night-to').value) save({ night: { to: $('set-night-to').value } }); });

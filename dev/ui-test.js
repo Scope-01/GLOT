@@ -436,6 +436,11 @@ async function makeTestImages(browser, dir) {
     // Info (457) in the screensaver keeps it on (photos: no caption to show, but no wake either when video runs).
     const capOk = await tvAmb.eval(`typeof GH.VideoSaver.showCaption === 'function'`);
     check('the screensaver can show its caption on demand', capOk);
+    // OLED care and the daytime look
+    const shift = await tvAmb.eval(`(() => { const h = document.documentElement; const before = getComputedStyle(document.getElementById('clock')).translate; h.style.setProperty('--shift-x', '6px'); h.style.setProperty('--shift-y', '-3px'); return [h.classList.contains('pixel-shift'), before, getComputedStyle(document.getElementById('clock')).translate]; })()`);
+    check('screen care moves the clock a few pixels', shift[0] === true && shift[2] === '6px -3px', shift);
+    const sun = await tvAmb.eval(`(() => { const d = new Date(2026, 5, 21, 12); const r = GH.sunTimes(d, 0, -d.getTimezoneOffset() / 4); return [Math.round(r.rise), Math.round(r.set)]; })()`);
+    check('sunrise and sunset at the equator are about 6 and 18', Math.abs(sun[0] - 360) < 20 && Math.abs(sun[1] - 1080) < 20, sun);
     await tvAmb.close();
 
     // ---------------- phone website ----------------

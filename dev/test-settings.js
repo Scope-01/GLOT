@@ -38,4 +38,14 @@ a.strictEqual(m.design.accent, 'auto');
 m = s.merge(m, { design: { faces: { tv: { weight: 300 } } } });
 a.strictEqual(m.design.faces.bigclock.font, 'serif', 'other faces kept');
 a.strictEqual(m.design.faces.tv.font, 'inter', 'unchanged fields kept');
+// 1.14: TV player by default, follow the sun, screen care
+a.strictEqual(m.screensaver.player, 'tv');
+a.strictEqual(m.night.followSun, true);
+a.strictEqual(m.advanced.pixelShift, true);
+m = s.merge(m, { screensaver: { player: 'web' }, night: { followSun: false }, advanced: { pixelShift: false } });
+a.strictEqual(m.screensaver.player, 'web');
+a.strictEqual(m.night.followSun, false);
+a.strictEqual(m.advanced.pixelShift, false);
+a.strictEqual(m.screensaver.quality, '4k', 'other screensaver fields kept');
+a.strictEqual(s.merge(m, { screensaver: { player: 'evil' } }).screensaver.player, 'tv');
 console.log('settings: all checks passed');
