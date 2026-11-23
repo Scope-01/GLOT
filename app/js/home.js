@@ -1074,6 +1074,13 @@
     return 'Add';
   }
 
+  // The app's own colour (from its brand), else the accent.
+  function shelfTint(it) {
+    var b = it.kind === 'input' ? (it.brand && GH.brandByKey(it.brand)) : it.kind === 'app' ? GH.brandForApp(it.label, it.id) : null;
+    var m = b && /#[0-9a-f]{6}/i.exec(b.bg);
+    return m ? m[0] : getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ffffff';
+  }
+
   function updateShelf(it) {
     scheduleLive(it);
     if (!it || !design || design.face !== 'tv' || mode !== 'dock') return;
@@ -1088,16 +1095,7 @@
       $('shelf-kind').textContent = shelfKind(it);
       $('shelf-title').textContent = it.kind === 'add' ? 'Photos and shortcuts' : it.label;
       text.classList.remove('swap');
-      media.textContent = '';
-      var big = null;
-      if (it.kind === 'youtube' && it.videoId) {
-        big = new Image();
-        big.className = 'big';
-        big.src = 'https://i.ytimg.com/vi/' + it.videoId + '/maxresdefault.jpg';
-      } else if (tileEls[it.key] && it.kind !== 'input') {
-        big = tileEls[it.key].el.querySelector('.face').cloneNode(true);
-      }
-      if (big) { media.appendChild(big); media.classList.add('on'); }
+      $('shelf').style.setProperty('--shelf-tint', shelfTint(it));
     }, 180);
   }
 
@@ -1120,12 +1118,20 @@
     return { x: (r.left - s.left) / scale, y: (r.top - s.top) / scale, w: r.width / scale, h: r.height / scale };
   }
 
+  var liveTarget = null;            // the card's full-size rect, whole pixels
+
+  // The card is laid out once at full size; growing and shrinking is only a
+  // transform (cheap on the TV's GPU), from the tile's rect to the card's.
   function placeCard(r) {
     var card = $('live-card');
-    card.style.left = Math.round(r.x) + 'px';
-    card.style.top = Math.round(r.y) + 'px';
-    card.style.width = Math.round(r.w) + 'px';
-    card.style.height = Math.round(r.h) + 'px';
+    card.style.left = r.x + 'px';
+    card.style.top = r.y + 'px';
+    card.style.width = r.w + 'px';
+    card.style.height = r.h + 'px';
+  }
+  function cardFrom(tile, target) {
+    return 'translate3d(' + (tile.x - target.x) + 'px, ' + (tile.y - target.y) + 'px, 0) scale(' +
+      (tile.w / target.w) + ', ' + (tile.h / target.h) + ')';
   }
 
   function scheduleLive(it) {
@@ -1145,38 +1151,38 @@
     var card = $('live-card');
     liveTile = stageRect(tileEls[it.key].el);
     var cx = liveTile.x + liveTile.w / 2;
+    // Whole pixels: the TV refuses a window at a fractional position.
     var target = {
-      x: clamp(cx - LIVE_W / 2, 60, 1920 - 60 - LIVE_W),
-      y: clamp(liveTile.y + liveTile.h + 16 - LIVE_H, 60, 1080 - 60 - LIVE_H),
+      x: Math.round(clamp(cx - LIVE_W / 2, 60, 1920 - 60 - LIVE_W)),
+      y: Math.round(clamp(liveTile.y + liveTile.h + 16 - LIVE_H, 60, 1080 - 60 - LIVE_H)),
       w: LIVE_W, h: LIVE_H
     };
+    liveTarget = target;
     $('lc-title').textContent = it.label + '  ·  HDMI ' + it.hdmi;
     card.classList.add('instant');
-    placeCard(liveTile);
+    placeCard(target);
+    card.style.transform = cardFrom(liveTile, target);
     card.classList.add('on', 'loading');
-    requestAnimationFrame(function () {
-      card.classList.remove('instant');
-      requestAnimationFrame(function () {
-        if (step !== liveStep) return;
-        placeCard(target);
-        setTimeout(function () {
-          if (step !== liveStep) return;
-          P.showInputPreview(it.hdmi, [target.x, target.y, target.w, target.h]).then(function (how) {
-            if (step !== liveStep) { P.hideInputPreview(); return; }
-            liveOn = true;
-            stage.style.setProperty('--hole-x', target.x + 'px');
-            stage.style.setProperty('--hole-y', target.y + 'px');
-            stage.style.setProperty('--hole-w', target.w + 'px');
-            stage.style.setProperty('--hole-h', target.h + 'px');
-            root.classList.toggle('live-fake', how === 'preview');
-            root.classList.add('live-hole');
-            card.classList.remove('loading');
-          }, function () {
-            if (step === liveStep) $('lc-wait').textContent = 'No picture from HDMI ' + it.hdmi;
-          });
-        }, 360);
+    void card.offsetWidth;            // apply the starting state before animating from it
+    card.classList.remove('instant');
+    card.style.transform = 'none';
+    // Once the card has grown, the TV draws the input in it.
+    setTimeout(function () {
+      if (step !== liveStep) return;
+      P.showInputPreview(it.hdmi, [target.x, target.y, target.w, target.h]).then(function (how) {
+        if (step !== liveStep) { P.hideInputPreview(); return; }
+        liveOn = true;
+        stage.style.setProperty('--hole-x', target.x + 'px');
+        stage.style.setProperty('--hole-y', target.y + 'px');
+        stage.style.setProperty('--hole-w', target.w + 'px');
+        stage.style.setProperty('--hole-h', target.h + 'px');
+        root.classList.toggle('live-fake', how === 'preview');
+        root.classList.add('live-hole');
+        card.classList.remove('loading');
+      }, function () {
+        if (step === liveStep) $('lc-wait').textContent = 'No picture from HDMI ' + it.hdmi;
       });
-    });
+    }, 400);
     $('lc-wait').textContent = 'HDMI ' + it.hdmi;
   }
 
@@ -1191,7 +1197,7 @@
     root.classList.remove('live-fake');
     if (liveOn) { liveOn = false; P.hideInputPreview(); }
     if (card.classList.contains('on')) {
-      if (liveTile) placeCard(liveTile);
+      if (liveTile && liveTarget) card.style.transform = cardFrom(liveTile, liveTarget);
       card.classList.remove('on');
       card.classList.remove('loading');
     }

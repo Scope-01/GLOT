@@ -328,11 +328,13 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         <button type="button" data-v="clock">Clock</button>
         <button type="button" data-v="widgets">Widgets</button>
         <button type="button" data-v="tiles">Tiles</button>
-        <button type="button" data-v="look">Look</button>
         <button type="button" data-v="background">Colours</button>
         <button type="button" data-v="more">More</button>
       </nav>
       <div class="card glass" id="ed-clock">
+        <div class="ed-label">Size</div>
+        <div class="optrow"><span>Clock size</span><select id="adv-clock"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></div>
+        <p class="hint">The clock shrinks by itself if it would run into the tiles.</p>
         <div class="ed-label">Font</div>
         <div class="chips" id="ed-fonts"></div>
         <div class="ed-label">Weight</div>
@@ -354,8 +356,16 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         <div class="ed-label">Accent</div>
         <p class="hint">Tints focus, labels and the Top Shelf. Auto takes it from the photo on screen.</p>
         <div class="swatches" id="ed-accents"></div>
+        <div class="ed-label">Glass</div>
+        <div class="optrow"><span>Glass</span><select id="adv-glass"><option value="clear">Clear</option><option value="normal">Normal</option><option value="frosted">Frosted</option></select></div>
+        <p class="hint">How see-through the glass panels are.</p>
       </div>
       <div class="card glass" id="ed-more" hidden>
+        <div class="ed-label">On screen</div>
+        <div class="optrow"><span>Name and logo</span><div class="seg small" id="adv-brand"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <div class="optrow"><span>“All apps” hint</span><div class="seg small" id="adv-hint"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <div class="optrow"><span>Photo credits</span><div class="seg small" id="adv-pcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <div class="optrow"><span>Video names</span><div class="seg small" id="adv-vcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
         <div class="ed-label">Aerial captions</div>
         <div class="seg small" id="ed-captions"><button type="button" data-v="en">English</button><button type="button" data-v="ar">العربية</button><button type="button" data-v="off">Off</button></div>
         <p class="hint">Apple’s own captions, such as the place being flown over.</p>
@@ -363,16 +373,12 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         <div class="seg small" id="ed-live"><button type="button" data-v="on">On</button><button type="button" data-v="off">Off</button></div>
         <p class="hint">Resting on an HDMI tile grows it into a card that plays that input live, on every face. Previewing switches the TV to that input in the background, so its sound may play, and devices such as the Apple TV may wake up.</p>
       </div>
-      <div class="card glass" id="ed-look" hidden>        <div class="optrow"><span>Clock size</span><select id="adv-clock"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></div>
-        <div class="optrow"><span>Tile size</span><select id="adv-tiles"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></div>
-        <div class="optrow"><span>Glass</span><select id="adv-glass"><option value="clear">Clear</option><option value="normal">Normal</option><option value="frosted">Frosted</option></select></div>
-        <div class="optrow"><span>Name and logo</span><div class="seg small" id="adv-brand"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-        <div class="optrow"><span>“All apps” hint</span><div class="seg small" id="adv-hint"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-        <div class="optrow"><span>Photo credits</span><div class="seg small" id="adv-pcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-        <div class="optrow"><span>Video names</span><div class="seg small" id="adv-vcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-        <p class="hint">The clock shrinks by itself if a size would make it run into the tiles.</p>
-      </div>
-      <div id="ed-tiles" hidden>      <p class="empty glass card" id="home-wait" hidden>Open this app on the TV once, then come back here.</p>
+      <div id="ed-tiles" hidden>
+        <div class="card glass">
+          <div class="ed-label">Size</div>
+          <div class="optrow"><span>Tile size</span><select id="adv-tiles"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></div>
+        </div>
+      <p class="empty glass card" id="home-wait" hidden>Open this app on the TV once, then come back here.</p>
       <div id="home-body">
         <div class="seg-wrap"></div>
         <div class="card glass">
@@ -1527,7 +1533,8 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     Array.prototype.forEach.call(faces.children, function (b) { b.classList.toggle('on', b.getAttribute('data-face') === d.face); });
     // editor
     Array.prototype.forEach.call($('dz-edit').children, function (b) { b.classList.toggle('on', b.getAttribute('data-v') === editing); });
-    ['clock', 'widgets', 'tiles', 'look', 'background', 'more'].forEach(function (k) { $('ed-' + k).hidden = k !== editing; });
+    if (editing === 'look') editing = 'clock';
+    ['clock', 'widgets', 'tiles', 'background', 'more'].forEach(function (k) { $('ed-' + k).hidden = k !== editing; });
     ['dz-clock', 'dz-dock', 'dz-bgbtn'].forEach(function (id) { $(id).classList.toggle('hot', $(id).getAttribute('data-edit') === editing); });
     renderFonts(f);
     if (document.activeElement !== $('ed-weight')) $('ed-weight').value = f.weight;

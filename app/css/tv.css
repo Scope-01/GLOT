@@ -1209,7 +1209,9 @@ html.face-bigclock .wd { font-size: 30px; }
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 40px 90px rgba(0, 0, 0, 0.65);
   opacity: 0;
   pointer-events: none;
-  transition: left 0.34s var(--ease), top 0.34s var(--ease), width 0.34s var(--ease), height 0.34s var(--ease), opacity 0.22s ease;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  transition: transform 0.38s var(--ease), opacity 0.22s ease;
 }
 #live-card.instant { transition: none; }
 #live-card.on { opacity: 1; }
@@ -1262,4 +1264,18 @@ html.live-hole, html.live-hole body { background: transparent; }
 /* desktop preview: something to see through the hole */
 html.live-hole.live-fake, html.live-hole.live-fake body {
   background: repeating-linear-gradient(135deg, #1b2a33 0 22px, #15222a 22px 44px);
+}
+/* Top Shelf: a large title over a soft wash of the focused app's colour. */
+#shelf-media { display: none !important; }
+html.face-tv #shelf::before {
+  content: "";
+  position: absolute;
+  left: -200px;
+  bottom: -40px;
+  width: 1400px;
+  height: 760px;
+  background: radial-gradient(ellipse 50% 50% at 40% 60%, var(--shelf-tint, #ffffff) 0%, transparent 70%);
+  opacity: 0.22;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
 }
