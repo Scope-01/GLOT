@@ -1109,7 +1109,7 @@
   var liveTile = null;              // the tile's rect the card grew from
   var LIVE_W = 640;
   var LIVE_H = 360;
-  var LIVE_DWELL_MS = 700;
+  var LIVE_DWELL_MS = 450;
 
   function stageRect(el) {
     var s = stage.getBoundingClientRect();
@@ -1166,23 +1166,24 @@
     void card.offsetWidth;            // apply the starting state before animating from it
     card.classList.remove('instant');
     card.style.transform = 'none';
-    // Once the card has grown, the TV draws the input in it.
-    setTimeout(function () {
-      if (step !== liveStep) return;
-      P.showInputPreview(it.hdmi, [target.x, target.y, target.w, target.h]).then(function (how) {
-        if (step !== liveStep) { P.hideInputPreview(); return; }
-        liveOn = true;
-        stage.style.setProperty('--hole-x', target.x + 'px');
-        stage.style.setProperty('--hole-y', target.y + 'px');
-        stage.style.setProperty('--hole-w', target.w + 'px');
-        stage.style.setProperty('--hole-h', target.h + 'px');
-        root.classList.toggle('live-fake', how === 'preview');
-        root.classList.add('live-hole');
-        card.classList.remove('loading');
-      }, function () {
-        if (step === liveStep) $('lc-wait').textContent = 'No picture from HDMI ' + it.hdmi;
-      });
-    }, 400);
+    // Switch the TV to the input straight away (that's the slow part) while the
+    // card grows; the picture shows once both are done.
+    var grown = new Promise(function (r) { setTimeout(r, 380); });
+    var picture = P.showInputPreview(it.hdmi, [target.x, target.y, target.w, target.h]);
+    Promise.all([picture, grown]).then(function (both) {
+      var how = both[0];
+      if (step !== liveStep) { P.hideInputPreview(); return; }
+      liveOn = true;
+      stage.style.setProperty('--hole-x', target.x + 'px');
+      stage.style.setProperty('--hole-y', target.y + 'px');
+      stage.style.setProperty('--hole-w', target.w + 'px');
+      stage.style.setProperty('--hole-h', target.h + 'px');
+      root.classList.toggle('live-fake', how === 'preview');
+      root.classList.add('live-hole');
+      card.classList.remove('loading');
+    }, function () {
+      if (step === liveStep) $('lc-wait').textContent = 'No picture from HDMI ' + it.hdmi;
+    });
     $('lc-wait').textContent = 'HDMI ' + it.hdmi;
   }
 

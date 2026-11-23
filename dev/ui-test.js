@@ -428,6 +428,14 @@ async function makeTestImages(browser, dir) {
     await tvAmb.key(K.RIGHT);
     await sleep(300);
     check('the next press works normally', (await tvState(tvAmb)).focus === before1 + 1);
+    // Apple TV face: nothing from Home (the Top Shelf) may sit over the screensaver.
+    await tvAmb.eval(`document.documentElement.classList.add('face-tv'); GH.enterAmbient(); true`);
+    await sleep(1600);
+    const shelfOp = await tvAmb.eval(`getComputedStyle(document.getElementById('shelf')).opacity`);
+    check('the Top Shelf is hidden in the screensaver', shelfOp === '0', shelfOp);
+    // Info (457) in the screensaver keeps it on (photos: no caption to show, but no wake either when video runs).
+    const capOk = await tvAmb.eval(`typeof GH.VideoSaver.showCaption === 'function'`);
+    check('the screensaver can show its caption on demand', capOk);
     await tvAmb.close();
 
     // ---------------- phone website ----------------

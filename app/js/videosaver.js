@@ -272,7 +272,19 @@
     request(target + (dir < 0 ? -1 : 1), true);
   }
 
+  // A button press in the screensaver brings back the current place's caption.
+  function showCaptionNow() {
+    if (!running || !current || !current.v) return false;
+    var cap = captionAt(current.clip, current.v.currentTime);
+    var text = cap ? captionText(cap) : '';
+    if (!text && cfg.captions !== 'off') text = current.clip && current.clip.credit;
+    if (!text) return false;
+    showCredit(text);
+    return true;
+  }
+
   GH.VideoSaver = {
+    showCaption: showCaptionNow,
     start: start,
     stop: stop,
     step: step,

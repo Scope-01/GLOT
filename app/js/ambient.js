@@ -26,6 +26,16 @@
   var swallowKey = null;
   var enteredAt = 0;
   var WAKE_GUARD_MS = 600;
+  // Play/Pause, Play, Pause, Info, subtitles, yellow
+  var CAPTION_KEYS = [10252, 415, 19, 457, 10221, 405];
+  // The TV only sends these media keys to apps that ask for them.
+  try {
+    if (window.tizen && tizen.tvinputdevice) {
+      ['MediaPlayPause', 'MediaPlay', 'MediaPause', 'Info', 'Caption', 'ColorF2Yellow'].forEach(function (k) {
+        try { tizen.tvinputdevice.registerKey(k); } catch (e) { /* not on this remote */ }
+      });
+    }
+  } catch (e) { /* preview */ }
 
   function isOpen(id) {
     var e = document.getElementById(id);
@@ -62,6 +72,10 @@
       e.stopImmediatePropagation();
       // The press that opened it may still be held and repeating.
       if (e.repeat || Date.now() - enteredAt < WAKE_GUARD_MS) return;
+      // Play/Pause, Info, subtitles or yellow: show the caption again.
+      if (CAPTION_KEYS.indexOf(e.keyCode) >= 0) {
+        if (GH.VideoSaver && GH.VideoSaver.isRunning()) { GH.VideoSaver.showCaption(); return; }
+      }
       // Left and Right change the scene; every other button comes back to Home.
       if (e.keyCode === 37 || e.keyCode === 39) {
         if (GH.VideoSaver && GH.VideoSaver.isRunning()) GH.VideoSaver.step(e.keyCode === 37 ? -1 : 1);
