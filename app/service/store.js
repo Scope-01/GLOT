@@ -21,7 +21,7 @@ function mkdirp(dir) {
 }
 
 function emptyState() {
-  return { v: 1, rev: 1, password: null, sessions: [], photos: [], shortcuts: [], videos: [], videoSaver: true, settings: null, catalog: null };
+  return { v: 1, rev: 1, password: null, sessions: [], photos: [], shortcuts: [], videos: [], videoSaver: true, settings: null, catalog: null, wifi: null, usage: [] };
 }
 
 // Picks the first candidate directory that can really be written and read back.
@@ -69,6 +69,10 @@ Store.prototype._read = function (file) {
   s.videoSaver = data.videoSaver !== false;
   s.settings = data.settings && typeof data.settings === 'object' ? data.settings : null;
   s.catalog = data.catalog && typeof data.catalog === 'object' ? data.catalog : null;
+  // Guest Wi-Fi: kept apart from settings, so a settings backup never holds the password.
+  s.wifi = data.wifi && typeof data.wifi === 'object' && typeof data.wifi.ssid === 'string' ? data.wifi : null;
+  // Screen time: what was opened from the TV and for how long. Stays on the TV.
+  s.usage = Array.isArray(data.usage) ? data.usage.filter(function (u) { return u && typeof u.id === 'string' && typeof u.at === 'number'; }) : [];
   return s;
 };
 

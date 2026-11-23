@@ -948,8 +948,6 @@ html.apps #label, html.apps #credit { opacity: 0; }
 html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; }
 html.still *, html.still *::before, html.still *::after { transition: none !important; animation: none !important; }
 /* Advanced settings from the phone website. */
-html.clock-small #clock { zoom: 0.75; }
-html.clock-large #clock { zoom: 1.3; }
 html.no-brand #brand,
 html.no-apps-hint #apps-hint,
 html.no-photo-credit #credit,
@@ -1036,12 +1034,13 @@ html.face-tv .tile.focused { transform: translateY(-14px) scale(1.12); }
 html.face-tv .tile.focused .glow {
   box-shadow: 0 34px 60px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(255, 255, 255, 0.55), 0 0 60px var(--accent-glow, rgba(255, 255, 255, 0.22));
 }
-/* the slow tilt of a focused tile, like Apple TV's focus motion */
-html.face-tv .tile.focused .face { animation: tilt 6s ease-in-out 0.4s infinite; }
+/* one tilt as a tile takes focus, like Apple TV, then still: a looping
+   animation kept the GPU busy all the time and made the TV choppy */
+html.face-tv .tile.focused .face { animation: tilt 1.1s ease-out 0.15s 1 both; }
 @keyframes tilt {
-  0%, 100% { transform: perspective(900px) rotateX(0deg) rotateY(0deg); }
-  25% { transform: perspective(900px) rotateX(2.2deg) rotateY(-3deg); }
-  75% { transform: perspective(900px) rotateX(-2deg) rotateY(3deg); }
+  0% { transform: perspective(900px) rotateX(0deg) rotateY(0deg); }
+  40% { transform: perspective(900px) rotateX(2deg) rotateY(-2.5deg); }
+  100% { transform: perspective(900px) rotateX(0deg) rotateY(0deg); }
 }
 html.face-tv #label { bottom: 64px; font-size: 26px; font-weight: 600; }
 
@@ -1165,3 +1164,102 @@ html.face-bigclock #time { font-size: 250px; line-height: 0.95; letter-spacing: 
 html.face-bigclock #time .ampm { display: none; }
 html.face-bigclock #weather { align-items: center; margin-top: 22px; }
 html.face-bigclock .wd { font-size: 30px; }
+
+/* ---------- Guests screen ---------- */
+#guests {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1100px;
+  padding: 56px 64px 40px;
+  border-radius: 48px;
+  background: rgba(28, 28, 30, 0.72);
+  -webkit-backdrop-filter: blur(44px) saturate(170%);
+  backdrop-filter: blur(44px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -46%);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, transform 0.32s var(--ease), visibility 0s 0.32s;
+  z-index: 7;
+  text-align: center;
+}
+#guests.open { opacity: 1; visibility: visible; transform: translate(-50%, -50%); transition: opacity 0.25s ease, transform 0.32s var(--ease), visibility 0s; }
+.g-title { font-size: 54px; font-weight: 700; letter-spacing: -0.02em; }
+.g-grid { display: flex; justify-content: center; margin-top: 40px; }
+.g-card { width: 420px; padding: 30px 24px 26px; border-radius: 34px; background: rgba(255, 255, 255, 0.07); }
+.g-card + .g-card { margin-left: 40px; }
+.g-card canvas { display: block; width: 300px; height: 300px; margin: 0 auto; border-radius: 20px; background: #fff; }
+.g-card.off canvas { visibility: hidden; }
+.g-name { margin-top: 22px; font-size: 32px; font-weight: 700; }
+.g-sub { margin-top: 8px; font-size: 24px; color: var(--text-2); min-height: 0; }
+.g-foot { margin-top: 32px; font-size: 22px; color: rgba(255, 255, 255, 0.5); }
+.tile-guest .face { background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.16); color: rgba(255, 255, 255, 0.86); }
+/* ---------- live HDMI preview: the focused tile grows into a playing card ---------- */
+#live-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 6;
+  border-radius: 14px;
+  background: #050608;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 40px 90px rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  transition: left 0.34s var(--ease), top 0.34s var(--ease), width 0.34s var(--ease), height 0.34s var(--ease), opacity 0.22s ease;
+}
+#live-card.instant { transition: none; }
+#live-card.on { opacity: 1; }
+#lc-wait {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+}
+#live-card.loading #lc-wait { opacity: 1; transition: opacity 0.3s ease 0.3s; }
+.lc-badge {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  background: #e5262c;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+#live-card.loading .lc-badge { opacity: 0; }
+#lc-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 600;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+html.live-hole #label { opacity: 0; }
+/* Cut the card's inside out of the page so the TV's picture shows through. */
+html.live-hole #stage {
+  -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+  -webkit-mask-size: 100% 100%, var(--hole-w) var(--hole-h);
+  -webkit-mask-position: 0 0, var(--hole-x) var(--hole-y);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+html.live-hole, html.live-hole body { background: transparent; }
+/* desktop preview: something to see through the hole */
+html.live-hole.live-fake, html.live-hole.live-fake body {
+  background: repeating-linear-gradient(135deg, #1b2a33 0 22px, #15222a 22px 44px);
+}

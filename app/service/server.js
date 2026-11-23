@@ -27,11 +27,16 @@ var storeMod = require('./store.js');
 var settingsMod = require('./settings.js');
 var yt = require('../js/ytparse.js');
 
-var VERSION = '1.8.0';      // keep equal to serviceVersion in js/config.js
+var VERSION = '1.10.0';      // keep equal to serviceVersion in js/config.js
 var COOKIE = 'gh_sid';
 var DAY = 24 * 3600 * 1000;
 var QR_LIFE_MS = 10 * 60 * 1000;
 var QR_RENEW_MS = 2 * 60 * 1000;
+var DROP_LIFE_MS = 60 * 60 * 1000;   // a guest photo-drop code works for an hour
+var DROP_MAX = 40;                   // photos per code
+var USAGE_MAX = 4000;
+var USAGE_DAYS = 120;
+var WIFI_SECURITY = ['WPA', 'WEP', 'nopass'];
 var WALLPAPER = /^[A-Za-z0-9._-]+\.jpe?g$/i;
 
 var DEFAULTS = {
@@ -169,6 +174,9 @@ function createService(opts) {
   var bootTimes = { service: uptimeNow(), appLoaded: null, appVisible: null };
   var qrCode = null;                 // { token, expires }: memory only, gone on restart
   var qrUses = 0;
+  var dropCode = null;               // { token, expires, uses }: memory only
+  var dropTotal = 0;
+  var dropTemplate = null;
   var jobs = [];
   var jobRunning = false;
   var fetcher = null;
@@ -197,6 +205,26 @@ function createService(opts) {
     if (fetcher || fetcherError) return fetcher;
     try { fetcher = require('./fetcher.js'); } catch (e) { fetcherError = e; note('fetcher unavailable: ' + e.message); }
     return fetcher;
+  }
+
+  function loadDropTemplate() {
+    try { dropTemplate = fs.readFileSync(path.join(serviceDir, 'web', 'drop.html'), 'utf8'); } catch (e) { dropTemplate = null; note('drop page missing: ' + e.message); }
+  }
+
+  // Wi-Fi joining text for a QR code (the standard WIFI: format, with escaping).
+  function wifiQrText(w) {
+    function esc(s) { return String(s).replace(/([\\;,:"])/g, '\\$1'); }
+    return 'WIFI:T:' + w.security + ';S:' + esc(w.ssid) + ';' + (w.security === 'nopass' ? '' : 'P:' + esc(w.password) + ';') + (w.hidden ? 'H:true;' : '') + ';';
+  }
+
+  function dropValid(token) {
+    return dropCode && Date.now() < dropCode.expires && dropCode.uses < DROP_MAX &&
+      auth.timingSafeEqualStr(String(token || ''), dropCode.token);
+  }
+
+  function pruneUsage() {
+    var cutoff = Date.now() - USAGE_DAYS * DAY;
+    store.state.usage = store.state.usage.filter(function (u) { return u.at >= cutoff; }).slice(-USAGE_MAX);
   }
 
   function loadTemplate() {
@@ -409,7 +437,7 @@ function createService(opts) {
 
   // ---------- views ----------
   function photoView(p) {
-    return { id: p.id, added: p.added, bytes: p.bytes, w: p.w, h: p.h, thumb: !!p.thumb };
+    return { id: p.id, added: p.added, bytes: p.bytes, w: p.w, h: p.h, thumb: !!p.thumb, guest: !!p.guest, from: p.from || null };
   }
 
   function shortcutView(x) {
@@ -711,6 +739,28 @@ function createService(opts) {
       });
     }
 
+    // A guest adding a photo through the TV's photo-drop QR code: no password,
+    // only the short-lived code, and only photos.
+    if (s[1] === 'drop' && s[2] === 'photo' && s.length === 3 && m === 'POST') {
+      if (!dropValid(req.headers['x-gh-drop'])) return refuseBody(req, res, 401, { error: 'drop-expired' });
+      if (store.state.photos.length >= cfg.maxPhotos) return refuseBody(req, res, 507, { error: 'full' });
+      if (store.totalBytes() > cfg.maxTotalBytes) return refuseBody(req, res, 507, { error: 'full' });
+      if (uploadsInFlight >= 3) return refuseBody(req, res, 429, { error: 'busy' });
+      var from = cleanName(req.headers['x-gh-from'] ? decodeURIComponent(String(req.headers['x-gh-from'])) : '', 30);
+      var gid = auth.randomHex(12);
+      dropCode.uses += 1;
+      return receiveJpeg(ctx, cfg.maxPhotoBytes, store.photoPath(gid), function (bytes, size) {
+        if (store.state.photos.length >= cfg.maxPhotos || store.totalBytes() + bytes > cfg.maxTotalBytes) {
+          storeMod.unlinkQuiet(store.photoPath(gid));
+          return sendJSON(res, 507, { error: 'full' });
+        }
+        store.state.photos.push({ id: gid, added: Date.now(), bytes: bytes, w: size.width, h: size.height, thumb: false, guest: true, from: from || null });
+        dropTotal += 1;
+        store.bump();
+        sendJSON(res, 201, { ok: true });
+      });
+    }
+
     // The QR code on the TV: one sign-in with one short-lived code, no password.
     if (s[1] === 'qr-login' && s.length === 2 && m === 'POST') {
       return readJSONBody(req, 1024).then(function (body) {
@@ -846,6 +896,34 @@ function createService(opts) {
           sendJSON(res, 200, { settings: store.state.settings });
         }).catch(function (e) { bodyError(res, e); });
       }
+    }
+
+    // Guest Wi-Fi. The password goes in, but only the TV app gets it back out.
+    if (s[1] === 'wifi' && s.length === 2) {
+      if (m === 'GET') {
+        var w = store.state.wifi;
+        return sendJSON(res, 200, w ? { ssid: w.ssid, security: w.security, hidden: !!w.hidden, hasPassword: !!w.password } : { ssid: null });
+      }
+      if (m === 'DELETE') { store.state.wifi = null; store.bump(); return sendJSON(res, 200, { ok: true }); }
+      if (m === 'POST') {
+        return readJSONBody(req, 4096).then(function (body) {
+          var ssid = String(body.ssid == null ? '' : body.ssid).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 32);
+          var security = WIFI_SECURITY.indexOf(body.security) >= 0 ? body.security : 'WPA';
+          if (!ssid.trim()) return sendJSON(res, 400, { error: 'ssid-required' });
+          var old = store.state.wifi;
+          var pw = typeof body.password === 'string' ? body.password.slice(0, 63) : (old && old.ssid === ssid ? old.password : '');
+          if (security !== 'nopass' && (!pw || pw.length < (security === 'WEP' ? 5 : 8))) return sendJSON(res, 400, { error: 'password-required' });
+          store.state.wifi = { ssid: ssid, password: security === 'nopass' ? '' : pw, security: security, hidden: body.hidden === true };
+          store.bump();
+          sendJSON(res, 200, { ssid: ssid, security: security, hidden: body.hidden === true, hasPassword: security !== 'nopass' });
+        }).catch(function (e) { bodyError(res, e); });
+      }
+    }
+
+    // Screen time, newest last.
+    if (s[1] === 'usage' && s.length === 2) {
+      if (m === 'GET') { pruneUsage(); return sendJSON(res, 200, { usage: store.state.usage, now: Date.now() }); }
+      if (m === 'DELETE') { store.state.usage = []; store.save(); return sendJSON(res, 200, { ok: true }); }
     }
 
     if (s[1] === 'settings' && s[2] === 'reset' && s.length === 3 && m === 'POST') {
@@ -990,6 +1068,40 @@ function createService(opts) {
       if (!qrCode || qrCode.expires - now < QR_RENEW_MS) qrCode = { token: auth.randomToken(32), expires: now + QR_LIFE_MS };
       return sendJSON(res, 200, { token: qrCode.token, url: (lanInfo() || {}).url || null, uses: qrUses });
     }
+    // Guest Wi-Fi for the TV's Guests screen: the QR text, and the password only if shown.
+    if (s[1] === 'wifi' && s.length === 2 && m === 'GET') {
+      var wf = store.state.wifi;
+      if (!wf) return sendJSON(res, 200, { ssid: null });
+      var showPw = currentSettings().guests.showPassword;
+      return sendJSON(res, 200, { ssid: wf.ssid, qr: wifiQrText(wf), password: showPw && wf.security !== 'nopass' ? wf.password : null });
+    }
+    // The photo-drop code: kept while the Guests screen is open, withdrawn when it closes.
+    if (s[1] === 'drop' && s.length === 2 && m === 'GET') {
+      var nowD = Date.now();
+      if (!dropCode || dropCode.expires - nowD < QR_RENEW_MS || dropCode.uses >= DROP_MAX) dropCode = { token: auth.randomToken(24), expires: nowD + DROP_LIFE_MS, uses: 0 };
+      return sendJSON(res, 200, { token: dropCode.token, url: (lanInfo() || {}).url || null, added: dropTotal });
+    }
+    if (s[1] === 'drop' && s.length === 2 && m === 'DELETE') {
+      dropCode = null;
+      return sendEmpty(res, 204);
+    }
+    // Screen time: a launch starts an entry; coming back ends it.
+    if (s[1] === 'usage' && s.length === 2 && m === 'POST') {
+      return readJSONBody(req, 2048).then(function (body) {
+        var id = typeof body.id === 'string' && /^[a-z0-9]{6,20}$/.test(body.id) ? body.id : null;
+        if (!id) return sendJSON(res, 400, { error: 'bad-id' });
+        var found = null;
+        for (var i = store.state.usage.length - 1; i >= 0 && i >= store.state.usage.length - 50; i--) if (store.state.usage[i].id === id) { found = store.state.usage[i]; break; }
+        if (found) {
+          if (typeof body.end === 'number' && body.end > found.at) found.end = Math.min(body.end, found.at + 12 * 3600 * 1000);
+        } else {
+          store.state.usage.push({ id: id, at: Date.now(), end: null, key: cleanName(body.key, 110), label: cleanName(body.label, 60), kind: ['app', 'input', 'web', 'youtube'].indexOf(body.kind) >= 0 ? body.kind : 'app' });
+          pruneUsage();
+        }
+        store.save();
+        sendJSON(res, 200, { ok: true });
+      }).catch(function (e) { bodyError(res, e); });
+    }
     if (s[1] === 'qr' && s.length === 2 && m === 'DELETE') {
       qrCode = null;
       return sendEmpty(res, 204);
@@ -1083,6 +1195,15 @@ function createService(opts) {
       if (top === 'api') return handleApi(ctx);
       if (ctx.method !== 'GET') return refuseBody(req, res, 405, { error: 'method' });
       if (segs.length === 1 && (top === '' || top === 'index.html')) return routeWebsite(ctx);
+      if (segs.length === 1 && top === 'drop') {
+        if (!dropTemplate) loadDropTemplate();
+        if (!dropTemplate) return sendJSON(res, 500, { error: 'drop-missing' });
+        var nonce = auth.randomToken(16);
+        var page = dropTemplate.split('{{NONCE}}').join(nonce);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': Buffer.byteLength(page), 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY',
+          'Content-Security-Policy': "default-src 'none'; img-src 'self' blob: data:; style-src 'nonce-" + nonce + "'; script-src 'nonce-" + nonce + "'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" });
+        return res.end(page);
+      }
       if (segs.length === 1 && (top === 'apple-touch-icon.png' || top === 'favicon.png')) {
         return serveFile(res, path.join(serviceDir, 'web', top), 'image/png', 86400);
       }

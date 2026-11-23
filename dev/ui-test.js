@@ -161,17 +161,17 @@ async function makeTestImages(browser, dir) {
     s = await tvState(tv);
     check('Move left puts it back', s.label === 'Wikipedia' && s.focus === 7, s);
 
-    // An HDMI tile: the Top Shelf shows its live picture, OK switches to it.
+    // An HDMI tile grows into a card playing its live picture (Netflix style); OK switches to it.
     await tv.key(K.LEFT);                  // Denon, HDMI 4
-    const live = await waitFor(tv, `document.documentElement.classList.contains('live-on') && document.getElementById('live-fake').textContent`, 2500);
+    const live = await waitFor(tv, `document.documentElement.classList.contains('live-hole') && document.getElementById('live-card').classList.contains('on') && document.getElementById('lc-title').textContent`, 3000);
     s = await tvState(tv);
-    check('resting on an HDMI tile shows its live picture in the Top Shelf', /HDMI 4/.test(live || '') && s.shelf === 'HDMI 4 / Denon', { live, shelf: s.shelf });
+    check('resting on an HDMI tile grows it into a live card', /Denon/.test(live || '') && /HDMI 4/.test(live || '') && s.shelf === 'HDMI 4 / Denon', { live, shelf: s.shelf });
     await tv.shot(path.join(OUT, 'tv-live.png'));
     await tv.key(K.ENTER);
     await sleep(400);
     s = await tvState(tv);
     check('OK on Denon switches to HDMI 4 (preview toast)', /would open Denon/.test(s.toast), s.toast);
-    check('opening something stops the live picture', !(await tv.eval(`document.documentElement.classList.contains('live-on')`)));
+    check('opening something stops the live picture', !(await tv.eval(`document.documentElement.classList.contains('live-hole') || document.getElementById('live-card').classList.contains('on')`)));
 
     // Hide an app, then bring it back from the + panel.
     for (let i = 0; i < 3; i++) await tv.key(K.LEFT);   // Spotify, last of the apps
@@ -254,7 +254,7 @@ async function makeTestImages(browser, dir) {
     await tv.key(K.UP);
     await tv.key(K.UP);
     s = await tvState(tv);
-    check('Up x3 opens the hidden menu', s.menuOpen && JSON.stringify(s.menuItems) === JSON.stringify(['Samsung Home*', 'Clean RAM', 'Photos, website and QR code', 'Restart this screen', 'Restart background service', 'Startup times', 'Cancel']), s);
+    check('Up x3 opens the hidden menu', s.menuOpen && JSON.stringify(s.menuItems) === JSON.stringify(['Samsung Home*', 'Clean RAM', 'Photos, website and QR code', 'Guests: Wi-Fi and photo drop', 'Restart this screen', 'Restart background service', 'Startup times', 'Cancel']), s);
     await sleep(300);
     await tv.shot(path.join(OUT, 'tv-hidden-menu.png'));
     await tv.key(K.ENTER);                 // Samsung Home
@@ -475,7 +475,7 @@ async function makeTestImages(browser, dir) {
     await sleep(2800);
     await ph.shot(path.join(OUT, 'phone-photos.png'));
 
-    await ph.click('[data-tab="shortcuts"]');
+    await ph.click('[data-tab="settings"]');      // Shortcuts live in Settings now
     await sleep(1200);
     await ph.type('#yt-url', 'https://youtu.be/dQw4w9WgXcQ?t=42');
     await sleep(2500);

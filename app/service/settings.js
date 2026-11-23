@@ -36,6 +36,7 @@ function defaults() {
     screensaver: { afterMin: 3, videoStopMin: 60, quality: '1080' },
     night: { enabled: true, from: '20:00', to: '06:00' },
     weather: { enabled: true, place: '', latitude: null, longitude: null, unit: 'celsius', week: true },
+    guests: { tile: false, showPassword: false },
     advanced: {
       clockSize: 'medium', showBrand: true, glass: 'normal', tileSize: 'normal', appsHint: true,
       photoCredits: true, videoCredits: true, holdMs: 700, backOnHome: 'aerials', hiddenMenu: true,
@@ -191,6 +192,10 @@ function merge(current, patch) {
   if (s.weather.latitude === null || s.weather.longitude === null) { s.weather.latitude = null; s.weather.longitude = null; }
   s.weather.unit = wx.unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
   s.weather.week = wx.week !== false;
+
+  var guests = pick('guests');
+  s.guests.tile = guests.tile === true;
+  s.guests.showPassword = guests.showPassword === true;
 
   var adv = pick('advanced');
   function oneOf(v, list, fallback) { return list.indexOf(v) >= 0 ? v : fallback; }

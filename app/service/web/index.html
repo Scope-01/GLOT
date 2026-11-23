@@ -234,6 +234,33 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
 .cd-row { display: flex; gap: 8px; margin-top: 8px; }
 .cd-row input[type=text] { flex: 1; min-height: 44px; font-size: 15px; }
 
+/* ---------- screen time ---------- */
+.st-hero { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.st-hero small { font-size: 17px; font-weight: 500; color: var(--text-2); margin-left: 6px; letter-spacing: 0; }
+.st-chart { position: relative; height: 150px; margin-top: 16px; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--line); }
+.st-col { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0 2px; cursor: pointer; }
+.st-bar { width: 100%; max-width: 26px; min-height: 0; background: #8fe3da; border-radius: 4px 4px 0 0; }
+.st-col.sel .st-bar { background: #c9f4ef; }
+.st-days { display: flex; gap: 2px; margin-top: 6px; font-size: 11px; color: var(--text-3); }
+.st-days span { flex: 1; text-align: center; white-space: nowrap; }
+.st-tip { min-height: 20px; margin-top: 8px; font-size: 14px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.st-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.st-row:first-child { border-top: 0; }
+.st-row .top { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.st-row .top b { font-weight: 600; }
+.st-row .top span { color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-row .line { height: 4px; margin-top: 6px; border-radius: 2px; background: #8fe3da; }
+.guest-badge { position: absolute; left: 6px; bottom: 5px; padding: 1px 7px; border-radius: 7px; background: rgba(0, 0, 0, 0.72); font-size: 11px; font-weight: 600; }
+
+.sect-title { margin: 26px 4px 10px; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.sect-title:first-child { margin-top: 4px; }
+#dz-brand { position: absolute; top: 62px; left: 78px; display: none; align-items: center; font-size: 46px; font-weight: 600; text-shadow: 0 2px 22px rgba(0, 0, 0, 0.35); }
+#dz-brand i { width: 80px; height: 80px; margin-right: 18px; border-radius: 20px; background: rgba(255, 255, 255, 0.85); }
+#dz-stage.glass #dz-brand { display: flex; }
+#dz-stage.no-brand #dz-brand { display: none; }
+#dz-hint { position: absolute; left: 0; right: 0; bottom: 40px; text-align: center; font-size: 22px; font-weight: 500; opacity: 0.62; }
+#dz-stage.no-hint #dz-hint { display: none; }
+
 /* settings */
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; font-size: 15px; }
 .kv + .kv { border-top: 1px solid var(--line); }
@@ -278,9 +305,8 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     <nav class="seg" role="tablist">
       <button type="button" data-tab="design" role="tab">Design</button>
       <button type="button" data-tab="photos" role="tab">Photos</button>
-      <button type="button" data-tab="home" role="tab">Home</button>
-      <button type="button" data-tab="shortcuts" role="tab">Shortcuts</button>
-      <button type="button" data-tab="videos" role="tab">Videos</button>
+
+      <button type="button" data-tab="time" role="tab">Time</button>
       <button type="button" data-tab="settings" role="tab">Settings</button>
     </nav>
 
@@ -292,7 +318,7 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
           <div id="dz-shelf"><div id="dz-shelf-kind">APP</div><div id="dz-shelf-title">Nuvio</div></div>
           <button type="button" id="dz-bgbtn" data-edit="background">Background</button>
           <button type="button" id="dz-clock" data-edit="clock"><div id="dz-date"></div><div id="dz-time"></div><div id="dz-weather" class="dz-wd"></div><div id="dz-countdown" class="dz-wd"></div><div id="dz-greeting" class="dz-wd"></div></button>
-          <button type="button" id="dz-dock" data-edit="widgets"></button>
+          <div id="dz-brand"><i></i><span id="dz-brand-name">GLOT</span></div><div id="dz-hint">⌄ All apps</div><button type="button" id="dz-dock" data-edit="tiles"></button>
         </div>
       </div>
       <p class="hint">Tap the clock, the background or the row of tiles to change them. Changes reach the TV in a few seconds.</p>
@@ -301,6 +327,8 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
       <nav class="seg" id="dz-edit">
         <button type="button" data-v="clock">Clock</button>
         <button type="button" data-v="widgets">Widgets</button>
+        <button type="button" data-v="tiles">Tiles</button>
+        <button type="button" data-v="look">Look</button>
         <button type="button" data-v="background">Colours</button>
         <button type="button" data-v="more">More</button>
       </nav>
@@ -333,8 +361,44 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         <p class="hint">Apple’s own captions, such as the place being flown over.</p>
         <div class="ed-label">Live HDMI preview</div>
         <div class="seg small" id="ed-live"><button type="button" data-v="on">On</button><button type="button" data-v="off">Off</button></div>
-        <p class="hint">On the Apple TV face, resting on an HDMI tile shows that input live in the Top Shelf. Previewing switches the TV to that input in the background, so its sound may play, and devices such as the Apple TV may wake up.</p>
+        <p class="hint">Resting on an HDMI tile grows it into a card that plays that input live, on every face. Previewing switches the TV to that input in the background, so its sound may play, and devices such as the Apple TV may wake up.</p>
       </div>
+      <div class="card glass" id="ed-look" hidden>        <div class="optrow"><span>Clock size</span><select id="adv-clock"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></div>
+        <div class="optrow"><span>Tile size</span><select id="adv-tiles"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></div>
+        <div class="optrow"><span>Glass</span><select id="adv-glass"><option value="clear">Clear</option><option value="normal">Normal</option><option value="frosted">Frosted</option></select></div>
+        <div class="optrow"><span>Name and logo</span><div class="seg small" id="adv-brand"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <div class="optrow"><span>“All apps” hint</span><div class="seg small" id="adv-hint"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <div class="optrow"><span>Photo credits</span><div class="seg small" id="adv-pcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <div class="optrow"><span>Video names</span><div class="seg small" id="adv-vcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+        <p class="hint">The clock shrinks by itself if a size would make it run into the tiles.</p>
+      </div>
+      <div id="ed-tiles" hidden>      <p class="empty glass card" id="home-wait" hidden>Open this app on the TV once, then come back here.</p>
+      <div id="home-body">
+        <div class="seg-wrap"></div>
+        <div class="card glass">
+          <h2>Apps on Home</h2>
+          <div class="sc-list" id="home-apps"></div>
+          <div class="addrow">
+            <select id="home-add"></select>
+            <button class="btn secondary" type="button" id="home-add-btn">Add</button>
+          </div>
+        </div>
+        <div class="card glass">
+          <h2>HDMI inputs</h2>
+          <p class="hint">Leave a name empty to hide that port from Home.</p>
+          <div id="home-ports"></div>
+        </div>
+        <div class="card glass">
+          <details>
+            <summary>All apps order</summary>
+            <div class="sc-list" id="home-all"></div>
+          </details>
+          <button class="btn ghost block" type="button" id="home-all-reset">Sort A to Z</button>
+        </div>
+        <p class="hint">Changes reach the TV within a few seconds. You can also hold OK on a tile on the TV.</p>
+      </div>
+      </div>
+
     </div>
 
     <div id="tab-photos" class="tab" hidden>
@@ -380,84 +444,26 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
       <p class="hint">Tap a default photo to turn it on or off. If every photo is off, the TV shows a plain dark background.</p>
     </div>
 
-    <div id="tab-home" class="tab" hidden>
-      <p class="empty glass card" id="home-wait" hidden>Open this app on the TV once, then come back here.</p>
-      <div id="home-body">
-        <div class="seg-wrap"></div>
-        <div class="card glass">
-          <h2>Apps on Home</h2>
-          <div class="sc-list" id="home-apps"></div>
-          <div class="addrow">
-            <select id="home-add"></select>
-            <button class="btn secondary" type="button" id="home-add-btn">Add</button>
-          </div>
-        </div>
-        <div class="card glass">
-          <h2>HDMI inputs</h2>
-          <p class="hint">Leave a name empty to hide that port from Home.</p>
-          <div id="home-ports"></div>
-        </div>
-        <div class="card glass">
-          <details>
-            <summary>All apps order</summary>
-            <div class="sc-list" id="home-all"></div>
-          </details>
-          <button class="btn ghost block" type="button" id="home-all-reset">Sort A to Z</button>
-        </div>
-        <p class="hint">Changes reach the TV within a few seconds. You can also hold OK on a tile on the TV.</p>
-      </div>
-    </div>
-
-    <div id="tab-shortcuts" class="tab" hidden>
-      <div class="glass sc-list" id="sc-list"></div>
-      <p class="empty glass card" id="sc-empty" hidden>No shortcuts yet. Add a website or a YouTube video below.</p>
+    <div id="tab-time" class="tab" hidden>
+      <div class="seg" id="st-range"><button type="button" data-v="1">Today</button><button type="button" data-v="7">7 days</button><button type="button" data-v="30">30 days</button></div>
       <div class="card glass">
-        <h2>Add a website</h2>
-        <form id="web-form">
-          <input id="web-url" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="example.com" required>
-          <input id="web-name" type="text" maxlength="40" placeholder="Name on the TV (optional)">
-          <button class="btn primary block" type="submit" id="web-btn">Add website</button>
-        </form>
+        <div class="st-hero" id="st-total"></div>
+        <div id="st-chart-wrap">
+          <div class="st-chart" id="st-chart" role="img"></div>
+          <div class="st-days" id="st-days"></div>
+          <div class="st-tip" id="st-tip"></div>
+        </div>
       </div>
       <div class="card glass">
-        <h2>Add a YouTube video</h2>
-        <form id="yt-form">
-          <input id="yt-url" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Paste a YouTube link">
-          <div class="preview" id="yt-preview" hidden>
-            <img id="yt-thumb" alt="">
-            <div><div class="t" id="yt-title"></div><div class="a" id="yt-meta"></div></div>
-          </div>
-          <p class="msg" id="yt-msg" aria-live="polite"></p>
-          <button class="btn primary block" type="submit" id="yt-btn" disabled>Add video</button>
-        </form>
+        <h2>By app and input</h2>
+        <div id="st-list"></div>
       </div>
-      <p class="hint">Shortcuts sit after the apps on the TV's dock. On the TV, hold OK on a tile to move or remove it.</p>
-    </div>
-
-    <div id="tab-videos" class="tab" hidden>
-      <div class="card glass">
-        <div class="optrow">
-          <span>Video screensaver</span>
-          <div class="seg small" id="video-mode">
-            <button type="button" data-v="on">On</button>
-            <button type="button" data-v="off">Off</button>
-          </div>
-        </div>
-        <p class="hint" id="video-hint"></p>
-      </div>
-      <div class="glass sc-list" id="video-list"></div>
-      <div class="card glass">
-        <h2>Add a video link</h2>
-        <form id="video-form">
-          <input id="video-url" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://…/clip.mp4" required>
-          <input id="video-name" type="text" maxlength="40" placeholder="Name (optional)">
-          <button class="btn primary block" type="submit" id="video-btn">Add video</button>
-        </form>
-        <p class="hint">Use a direct link to a video file, such as .mp4 or .webm. YouTube links won’t work here.</p>
-      </div>
+      <p class="hint">Counted from when you open something from the TV’s Home until you’re back on Home, so time with the TV left in an app counts too (up to 12 hours a session). It stays on the TV.</p>
+      <button class="btn ghost block" type="button" id="st-clear">Clear history</button>
     </div>
 
     <div id="tab-settings" class="tab" hidden>
+      <div class="sect-title">General</div>
       <div class="card glass">
         <h2>Home screen</h2>
         <div class="optrow">
@@ -490,6 +496,7 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         </form>
         <div class="results" id="wx-results"></div>
       </div>
+      <div class="sect-title">Screensaver</div>
       <div class="card glass">
         <h2>Screensaver</h2>
         <div class="optrow">
@@ -514,8 +521,68 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
           </select>
         </div>
         <p class="hint">On the aerials, Left and Right change the scene and any other button returns to Home. 4K uses more internet (about 330 MB for a typical scene) and steps down if the TV or connection can’t keep up.</p>
-        <p class="hint">Photos take over when video stops, so a TV left on doesn’t stream all day. Turn video on or off under Videos.</p>
+        <p class="hint">Photos take over when video stops, so a TV left on doesn’t stream all day.</p>
       </div>
+      <div class="card glass">
+        <h2>Your own videos</h2>
+        <div class="optrow">
+          <span>Video screensaver</span>
+          <div class="seg small" id="video-mode">
+            <button type="button" data-v="on">On</button>
+            <button type="button" data-v="off">Off</button>
+          </div>
+        </div>
+        <p class="hint" id="video-hint"></p>
+      </div>
+      <div class="glass sc-list" id="video-list"></div>
+      <div class="card glass">
+        <h2>Add a video link</h2>
+        <form id="video-form">
+          <input id="video-url" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://…/clip.mp4" required>
+          <input id="video-name" type="text" maxlength="40" placeholder="Name (optional)">
+          <button class="btn primary block" type="submit" id="video-btn">Add video</button>
+        </form>
+        <p class="hint">Use a direct link to a video file, such as .mp4 or .webm. YouTube links won’t work here.</p>
+      </div>
+      <div class="sect-title">Shortcuts on Home</div>      <div class="glass sc-list" id="sc-list"></div>
+      <p class="empty glass card" id="sc-empty" hidden>No shortcuts yet. Add a website or a YouTube video below.</p>
+      <div class="card glass">
+        <h2>Add a website</h2>
+        <form id="web-form">
+          <input id="web-url" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="example.com" required>
+          <input id="web-name" type="text" maxlength="40" placeholder="Name on the TV (optional)">
+          <button class="btn primary block" type="submit" id="web-btn">Add website</button>
+        </form>
+      </div>
+      <div class="card glass">
+        <h2>Add a YouTube video</h2>
+        <form id="yt-form">
+          <input id="yt-url" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Paste a YouTube link">
+          <div class="preview" id="yt-preview" hidden>
+            <img id="yt-thumb" alt="">
+            <div><div class="t" id="yt-title"></div><div class="a" id="yt-meta"></div></div>
+          </div>
+          <p class="msg" id="yt-msg" aria-live="polite"></p>
+          <button class="btn primary block" type="submit" id="yt-btn" disabled>Add video</button>
+        </form>
+      </div>
+      <p class="hint">Shortcuts sit after the apps on the TV's dock. On the TV, hold OK on a tile to move or remove it.</p>
+      <div class="sect-title">Guests</div>      <div class="card glass">
+        <h2>Guest Wi-Fi</h2>
+        <p class="hint">Guests join by scanning a code on the TV’s Guests screen (hidden menu, or the Guests tile). The password is kept on the TV and never shown here again.</p>
+        <form id="wifi-form" autocomplete="off">
+          <input id="wifi-ssid" type="text" maxlength="32" placeholder="Network name" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+          <input id="wifi-pw" type="password" maxlength="63" placeholder="Password" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="new-password">
+          <div class="optrow"><span>Security</span><select id="wifi-sec"><option value="WPA">WPA / WPA2 / WPA3</option><option value="WEP">WEP</option><option value="nopass">None</option></select></div>
+          <div class="optrow"><span>Hidden network</span><div class="seg small" id="wifi-hidden"><button type="button" data-v="no">No</button><button type="button" data-v="yes">Yes</button></div></div>
+          <button class="btn primary block" type="submit" id="wifi-save">Save Wi-Fi</button>
+        </form>
+        <div class="optrow gap-top"><span>Show password on the TV</span><div class="seg small" id="wifi-showpw"><button type="button" data-v="off">Off</button><button type="button" data-v="on">On</button></div></div>
+        <div class="optrow gap-top"><span>Guests tile on Home</span><div class="seg small" id="guest-tile"><button type="button" data-v="off">Off</button><button type="button" data-v="on">On</button></div></div>
+        <p class="msg" id="wifi-msg" aria-live="polite"></p>
+        <button class="btn ghost block" type="button" id="wifi-remove" hidden>Remove Wi-Fi</button>
+      </div>
+      <div class="sect-title">More</div>
       <div class="card glass">
         <h2>Evening dimming</h2>
         <div class="optrow">
@@ -530,16 +597,6 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         <div class="seg small" id="adv-toggle"><button type="button" data-v="off">Hide</button><button type="button" data-v="on">Show</button></div>
       </div>
       <div id="advanced" hidden>
-        <div class="card glass">
-          <h2>Look</h2>
-          <div class="optrow"><span>Clock size</span><select id="adv-clock"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></div>
-          <div class="optrow"><span>Tile size</span><select id="adv-tiles"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></div>
-          <div class="optrow"><span>Glass</span><select id="adv-glass"><option value="clear">Clear</option><option value="normal">Normal</option><option value="frosted">Frosted</option></select></div>
-          <div class="optrow"><span>Name and logo</span><div class="seg small" id="adv-brand"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-          <div class="optrow"><span>“All apps” hint</span><div class="seg small" id="adv-hint"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-          <div class="optrow"><span>Photo credits</span><div class="seg small" id="adv-pcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-          <div class="optrow"><span>Video names</span><div class="seg small" id="adv-vcredit"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
-        </div>
         <div class="card glass">
           <h2>Behaviour</h2>
           <div class="optrow"><span>Hold OK for</span><select id="adv-hold"><option value="500">0.5 seconds</option><option value="700">0.7 seconds</option><option value="1000">1 second</option><option value="1500">1.5 seconds</option></select></div>
@@ -755,7 +812,10 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
   }
 
   function setTab(tab) {
-    if (['design', 'photos', 'home', 'shortcuts', 'videos', 'settings'].indexOf(tab) < 0) tab = 'design';
+    // Older links: Home is part of Design now, Videos and Shortcuts are in Settings.
+    if (tab === 'home') { editing = 'tiles'; tab = 'design'; }
+    if (tab === 'shortcuts' || tab === 'videos') tab = 'settings';
+    if (['design', 'photos', 'time', 'settings'].indexOf(tab) < 0) tab = 'design';
     state.tab = tab;
     store.set('gh.tab', tab);
     Array.prototype.forEach.call(document.querySelectorAll('.seg [data-tab]'), function (b) {
@@ -763,7 +823,11 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
       b.classList.toggle('on', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
-    ['design', 'photos', 'home', 'shortcuts', 'videos', 'settings'].forEach(function (t) { $('tab-' + t).hidden = t !== tab; });
+    ['design', 'photos', 'time', 'settings'].forEach(function (t) { $('tab-' + t).hidden = t !== tab; });
+    if (tab === 'settings') { loadShortcuts(); loadVideos(); }
+    if (tab === 'time') loadUsage();
+    if (tab === 'photos') loadPhotos();
+    if (tab === 'settings') loadWifi();
     if (tab === 'design') { fitDesign(); loadSettings(); }
     if (tab === 'home') loadSettings();
     if (tab === 'shortcuts') loadShortcuts();
@@ -834,6 +898,10 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     img.onerror = function () { if (img.src.indexOf('/thumbs/') >= 0) img.src = '/media/photos/' + p.id + '.jpg'; };
     img.src = p.thumb ? '/media/thumbs/' + p.id + '.jpg' : '/media/photos/' + p.id + '.jpg';
     b.appendChild(img);
+    if (p.guest) {
+      b.appendChild(el('span', 'guest-badge', p.from ? 'From ' + p.from : 'Guest'));
+      b.setAttribute('aria-label', 'Photo from ' + (p.from || 'a guest'));
+    }
     b.addEventListener('click', function () { openViewer(p); });
     return b;
   }
@@ -1140,6 +1208,8 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     renderHome();
     renderAdvanced();
     renderDesign();
+    setSeg('wifi-showpw', conf.guests && conf.guests.showPassword ? 'on' : 'off');
+    setSeg('guest-tile', conf.guests && conf.guests.tile ? 'on' : 'off');
   }
 
   $('set-name').addEventListener('change', function () {
@@ -1182,6 +1252,143 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
         box.appendChild(b);
       });
     });
+  });
+
+  // ---------- guest Wi-Fi ----------
+  var wifiHidden = false;
+  function wifiSay(text, kind) { var m = $('wifi-msg'); m.textContent = text || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+  function loadWifi() {
+    return api('GET', '/api/wifi').then(function (r) {
+      if (r.status !== 200) return;
+      var w = r.data;
+      if (document.activeElement !== $('wifi-ssid')) $('wifi-ssid').value = w.ssid || '';
+      $('wifi-pw').value = '';
+      $('wifi-pw').placeholder = w.hasPassword ? 'Password saved (type to replace)' : 'Password';
+      if (w.ssid) $('wifi-sec').value = w.security;
+      wifiHidden = !!w.hidden;
+      setSeg('wifi-hidden', wifiHidden ? 'yes' : 'no');
+      $('wifi-remove').hidden = !w.ssid;
+      wifiSay(w.ssid ? 'Guests can join ' + w.ssid + ' from the TV.' : '', w.ssid ? 'good' : '');
+    });
+  }
+  onSeg('wifi-hidden', function (v) { wifiHidden = v === 'yes'; setSeg('wifi-hidden', v); });
+  $('wifi-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var body = { ssid: $('wifi-ssid').value, security: $('wifi-sec').value, hidden: wifiHidden };
+    if ($('wifi-pw').value) body.password = $('wifi-pw').value;
+    $('wifi-save').disabled = true;
+    api('POST', '/api/wifi', body).then(function (r) {
+      $('wifi-save').disabled = false;
+      if (r.status === 200) { toast('Wi-Fi saved. It’s on the TV’s Guests screen.'); loadWifi(); return; }
+      wifiSay(r.data.error === 'password-required' ? 'Enter the password (8 or more characters for WPA).' : r.data.error === 'ssid-required' ? 'Enter the network name.' : 'Couldn’t save that.', 'bad');
+    });
+  });
+  $('wifi-remove').addEventListener('click', function () {
+    var b = $('wifi-remove');
+    if (!armed(b, 'Tap again to remove')) return;
+    api('DELETE', '/api/wifi').then(function () { toast('Wi-Fi removed from the TV.'); loadWifi(); });
+  });
+  onSeg('wifi-showpw', function (v) { save({ guests: { showPassword: v === 'on' } }); });
+  onSeg('guest-tile', function (v) { save({ guests: { tile: v === 'on' } }); });
+
+  // ---------- screen time ----------
+  var usage = [];
+  var usageNow = Date.now();
+  var stRange = +(store.get('gh.st.range') || 7);
+  function dayStart(t) { var d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+  function dur(ms) {
+    var m = Math.round(ms / 60000);
+    if (m < 1) return ms > 0 ? 'under 1 min' : '0 min';
+    var h = Math.floor(m / 60);
+    return h ? h + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min';
+  }
+  function loadUsage() {
+    return api('GET', '/api/usage').then(function (r) {
+      if (r.status !== 200) return;
+      usage = r.data.usage || [];
+      usageNow = r.data.now || Date.now();
+      renderUsage();
+    });
+  }
+  function renderUsage() {
+    setSeg('st-range', String(stRange));
+    var today = dayStart(usageNow);
+    var from = today - (stRange - 1) * 86400000;
+    var rows = usage.filter(function (u) { return u.at >= from; });
+    var total = 0;
+    var byKey = {};
+    var byDay = {};
+    rows.forEach(function (u) {
+      var d = u.end ? Math.max(0, u.end - u.at) : 0;
+      total += d;
+      var k = u.label || u.key;
+      if (!byKey[k]) byKey[k] = { label: k, kind: u.kind, ms: 0, opens: 0 };
+      byKey[k].ms += d;
+      byKey[k].opens += 1;
+      var day = dayStart(u.at);
+      byDay[day] = (byDay[day] || 0) + d;
+    });
+    $('st-total').textContent = dur(total);
+    $('st-total').appendChild(el('small', '', stRange === 1 ? 'today' : 'in ' + stRange + ' days'));
+    // daily bars (not for Today)
+    $('st-chart-wrap').hidden = stRange === 1;
+    var chart = $('st-chart');
+    var days = $('st-days');
+    chart.textContent = '';
+    days.textContent = '';
+    $('st-tip').textContent = '';
+    if (stRange > 1) {
+      var max = 0;
+      for (var i = 0; i < stRange; i++) max = Math.max(max, byDay[from + i * 86400000] || 0);
+      var summary = [];
+      for (var j = 0; j < stRange; j++) {
+        (function (t) {
+          var ms = byDay[t] || 0;
+          var date = new Date(t);
+          var name = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+          summary.push(name + ' ' + dur(ms));
+          var col = el('div', 'st-col');
+          col.setAttribute('aria-label', name + ': ' + dur(ms));
+          var bar = el('div', 'st-bar');
+          bar.style.height = max ? Math.max(ms ? 2 : 0, Math.round(ms / max * 140)) + 'px' : '0';
+          col.appendChild(bar);
+          function show() {
+            Array.prototype.forEach.call(chart.children, function (c) { c.classList.remove('sel'); });
+            col.classList.add('sel');
+            $('st-tip').textContent = name + '  ·  ' + dur(ms);
+          }
+          col.addEventListener('pointerenter', show);
+          col.addEventListener('click', show);
+          chart.appendChild(col);
+          var lab = el('span', '', stRange === 7 || date.getDate() % 5 === 1 ? (stRange === 7 ? date.toLocaleDateString(undefined, { weekday: 'narrow' }) : String(date.getDate())) : '');
+          days.appendChild(lab);
+        }(from + j * 86400000));
+      }
+      chart.setAttribute('aria-label', 'Time per day: ' + summary.join(', '));
+    }
+    // per app and input: doubles as the table view of the chart
+    var list = $('st-list');
+    list.textContent = '';
+    var items = Object.keys(byKey).map(function (k) { return byKey[k]; }).sort(function (a, b) { return b.ms - a.ms || b.opens - a.opens; });
+    var top = items.length ? items[0].ms : 0;
+    if (!items.length) list.appendChild(el('p', 'empty', 'Nothing opened from the TV’s Home yet.'));
+    items.forEach(function (x) {
+      var row = el('div', 'st-row');
+      var t = el('div', 'top');
+      t.appendChild(el('b', '', x.label));
+      t.appendChild(el('span', '', dur(x.ms) + '  ·  ' + x.opens + (x.opens === 1 ? ' open' : ' opens')));
+      row.appendChild(t);
+      var line = el('div', 'line');
+      line.style.width = top ? Math.max(1, Math.round(x.ms / top * 100)) + '%' : '0';
+      row.appendChild(line);
+      list.appendChild(row);
+    });
+  }
+  onSeg('st-range', function (v) { stRange = +v; store.set('gh.st.range', v); renderUsage(); });
+  $('st-clear').addEventListener('click', function () {
+    var b = $('st-clear');
+    if (!armed(b, 'Tap again to clear all history')) return;
+    api('DELETE', '/api/usage').then(function () { usage = []; renderUsage(); toast('Screen time cleared.'); });
   });
 
   // ---------- design (like the iPhone Lock Screen builder) ----------
@@ -1289,6 +1496,15 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
       wd[k].hidden = i < 0;
       wd[k].style.order = String(k === 'date' && d.face === 'bigclock' ? 0 : 20 + Math.max(0, i));
     });
+    // the Look settings, live: tile size, glass, name and hints
+    var adv = conf.advanced || {};
+    var tileH = { small: 132, normal: 156, large: 184 }[adv.tileSize] || 156;
+    stage.style.setProperty('--tile', tileH + 'px');
+    stage.classList.toggle('no-brand', adv.showBrand === false);
+    stage.classList.toggle('no-hint', adv.appsHint === false);
+    $('dz-brand-name').textContent = conf.name;
+    var glassA = { clear: 0.22, normal: 0.42, frosted: 0.68 }[adv.glass] || 0.42;
+    $('dz-dock').style.background = d.face === 'glass' || d.face === 'bigclock' ? 'rgba(28, 28, 30, ' + glassA + ')' : 'none';
     // tiles
     var dock = $('dz-dock');
     dock.textContent = '';
@@ -1311,7 +1527,7 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     Array.prototype.forEach.call(faces.children, function (b) { b.classList.toggle('on', b.getAttribute('data-face') === d.face); });
     // editor
     Array.prototype.forEach.call($('dz-edit').children, function (b) { b.classList.toggle('on', b.getAttribute('data-v') === editing); });
-    ['clock', 'widgets', 'background', 'more'].forEach(function (k) { $('ed-' + k).hidden = k !== editing; });
+    ['clock', 'widgets', 'tiles', 'look', 'background', 'more'].forEach(function (k) { $('ed-' + k).hidden = k !== editing; });
     ['dz-clock', 'dz-dock', 'dz-bgbtn'].forEach(function (id) { $(id).classList.toggle('hot', $(id).getAttribute('data-edit') === editing); });
     renderFonts(f);
     if (document.activeElement !== $('ed-weight')) $('ed-weight').value = f.weight;
@@ -1326,6 +1542,30 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     setSeg('ed-live', d.livePreview ? 'on' : 'off');
     tick();
     fitDesign();
+    clockBase = { small: 0.75, medium: 1, large: 1.3 }[adv.clockSize] || 1;
+    fitMockClock();
+  }
+
+  // Same rule as the TV: the clock shrinks rather than run into the tiles.
+  var clockBase = 1;
+  function fitMockClock() {
+    var clock = $('dz-clock');
+    var stage = $('dz-stage');
+    var z = clockBase;
+    clock.style.zoom = String(z);
+    var s = stage.getBoundingClientRect();
+    var scale = s.width / 1920;
+    if (!scale) return;
+    for (var pass = 0; pass < 2; pass++) {
+      var c = clock.getBoundingClientRect();
+      var top = (c.top - s.top) / scale;
+      var bottom = (c.bottom - s.top) / scale;
+      var limit = ($('dz-dock').getBoundingClientRect().top - s.top) / scale - 28;
+      if (design().face === 'tv') limit = Math.min(limit, 196);
+      if (bottom <= limit || bottom <= top) break;
+      z = Math.max(0.45, z * (limit - top) / (bottom - top));
+      clock.style.zoom = String(z);
+    }
   }
 
   function renderFonts(f) {

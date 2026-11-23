@@ -25,6 +25,9 @@
   var backOnHome = 'aerials';
   var hiddenMenuOn = true;
   var addTileOn = true;
+  var guestTileOn = false;
+  var guestsSettings = { tile: false };
+  var layoutChangedGuests = false;
   var PADX = 28;                     // visual glass padding left/right
   var PADY = 26;
   var EDGE = 16;                     // room inside the clip for the enlarged tile
@@ -159,6 +162,7 @@
       dateText = now.toDateString();
     }
     renderWidgets(now);
+    if (GH.fitClock) GH.fitClock();
     var t = $('time');
     t.textContent = main.trim();
     if (period) { var s = document.createElement('span'); s.className = 'ampm'; s.textContent = period; t.appendChild(s); }
@@ -214,6 +218,7 @@
         icon: s.icon ? D.media(s.icon) : null, iconW: s.iconW || 0
       });
     });
+    if (guestTileOn) list.push({ kind: 'guest', key: 'guest', label: 'Guests' });
     if (addTileOn) list.push({ kind: 'add', key: 'add', label: 'Add photos and shortcuts' });
     return list;
   }
@@ -289,6 +294,26 @@
     p.setAttribute('stroke-linecap', 'round');
     p.setAttribute('fill', 'none');
     s.appendChild(p);
+    return s;
+  }
+
+  function wifiGlyph() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var s = document.createElementNS(ns, 'svg');
+    s.setAttribute('viewBox', '0 0 48 48');
+    s.setAttribute('class', 'plus');
+    ['M8 19a23 23 0 0 1 32 0', 'M14 25.5a14.5 14.5 0 0 1 20 0', 'M20 32a6 6 0 0 1 8 0'].forEach(function (d) {
+      var p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('stroke', 'currentColor');
+      p.setAttribute('stroke-width', '3.2');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('fill', 'none');
+      s.appendChild(p);
+    });
+    var dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', '24'); dot.setAttribute('cy', '37.5'); dot.setAttribute('r', '2.6'); dot.setAttribute('fill', 'currentColor');
+    s.appendChild(dot);
     return s;
   }
 
@@ -414,6 +439,8 @@
         face.appendChild(div('name-fallback', it.label));
       }
       if (!it.tv) face.appendChild(div('input-port', 'HDMI ' + it.hdmi));   // no port caption on Live TV
+    } else if (it.kind === 'guest') {
+      face.appendChild(wifiGlyph());
     } else {
       face.appendChild(plusGlyph());
     }
@@ -540,6 +567,8 @@
     if (!it) return;
     hideLive();
     if (it.kind === 'add') { openPanel(); return; }
+    if (it.kind === 'guest') { openGuests(); return; }
+    startUsage(it);
     var p;
     var viaSmartHub = it.kind === 'app' && smartHubLaunch;
     if (viaSmartHub && !cfg.preview) setLaunching(true);
@@ -768,6 +797,7 @@
       } },
       { label: 'Clean RAM', run: cleanRam },
       { label: 'Photos, website and QR code', run: function () { if (photoService) openPanel(); } },
+      { label: 'Guests: Wi-Fi and photo drop', run: function () { if (photoService) openGuests(); } },
       { label: 'Restart this screen', run: function () { location.reload(); } },
       { label: 'Restart background service', run: restartServiceNow },
       { label: 'Startup times', run: showBootTimes },
@@ -970,6 +1000,7 @@
       updateShelf(items[focus]);
     }
     renderWidgets(new Date());
+    GH.fitClock();
   }
 
   function setAccent(color) {
@@ -1031,25 +1062,23 @@
     else if (design.faces[design.face].widgets.indexOf('countdown') >= 0) el.classList.add('on');
   }
 
-  // ---------- Top Shelf and the live HDMI picture (Apple TV face) ----------
+  // ---------- Top Shelf (Apple TV face) ----------
   var lastShelfKey = null;
-  var liveTimer = null;
-  var liveOn = false;
-  var LIVE_RECT = [1098, 210, 712, 400];      // matches #live-frame in tv.css
 
   function shelfKind(it) {
     if (it.kind === 'app') return 'App';
     if (it.kind === 'input') return it.tv ? 'Live TV' : 'HDMI ' + it.hdmi;
     if (it.kind === 'youtube') return 'YouTube';
     if (it.kind === 'web') return hostOf(it.url) || 'Website';
+    if (it.kind === 'guest') return 'Guests';
     return 'Add';
   }
 
   function updateShelf(it) {
-    if (!it || !design || design.face !== 'tv' || mode !== 'dock') { if (!it || !design || design.face !== 'tv') hideLive(); return; }
+    scheduleLive(it);
+    if (!it || !design || design.face !== 'tv' || mode !== 'dock') return;
     if (it.key === lastShelfKey) return;
     lastShelfKey = it.key;
-    hideLive();
     var text = $('shelf-text');
     var media = $('shelf-media');
     text.classList.add('swap');
@@ -1065,46 +1094,132 @@
         big = new Image();
         big.className = 'big';
         big.src = 'https://i.ytimg.com/vi/' + it.videoId + '/maxresdefault.jpg';
-      } else if (tileEls[it.key]) {
+      } else if (tileEls[it.key] && it.kind !== 'input') {
         big = tileEls[it.key].el.querySelector('.face').cloneNode(true);
       }
       if (big) { media.appendChild(big); media.classList.add('on'); }
     }, 180);
-    if (it.kind === 'input' && !it.tv && design.livePreview) {
-      clearTimeout(liveTimer);
-      liveTimer = setTimeout(function () { showLive(it); }, 900);
-    }
   }
 
-  function showLive(it) {
-    if (lastShelfKey !== it.key || mode !== 'dock' || document.hidden ||
-        document.documentElement.classList.contains('ambient')) return;
-    P.showInputPreview(it.hdmi, LIVE_RECT).then(function (how) {
-      if (lastShelfKey !== it.key || mode !== 'dock') { P.hideInputPreview(); return; }
-      liveOn = true;
-      document.documentElement.classList.toggle('live-fake', how === 'preview');
-      document.documentElement.classList.add('live-on');
-      $('live-fake').textContent = 'Live picture from HDMI ' + it.hdmi + ' (shown on the TV)';
-    }, function () { /* no picture: the tile stays */ });
+  // ---------- live HDMI preview, Netflix style ----------
+  // Resting on an HDMI tile grows it into a 16:9 card, and the input plays in
+  // it. The TV draws the picture under the page, so the page cuts a hole there.
+  var liveKey = null;
+  var liveTimer = null;
+  var liveStep = 0;                 // bumps on every open/close, so late callbacks can tell
+  var liveOn = false;
+  var liveTile = null;              // the tile's rect the card grew from
+  var LIVE_W = 640;
+  var LIVE_H = 360;
+  var LIVE_DWELL_MS = 700;
+
+  function stageRect(el) {
+    var s = stage.getBoundingClientRect();
+    var scale = s.width / 1920 || 1;
+    var r = el.getBoundingClientRect();
+    return { x: (r.left - s.left) / scale, y: (r.top - s.top) / scale, w: r.width / scale, h: r.height / scale };
+  }
+
+  function placeCard(r) {
+    var card = $('live-card');
+    card.style.left = Math.round(r.x) + 'px';
+    card.style.top = Math.round(r.y) + 'px';
+    card.style.width = Math.round(r.w) + 'px';
+    card.style.height = Math.round(r.h) + 'px';
+  }
+
+  function scheduleLive(it) {
+    var key = it && it.key;
+    if (key && key === liveKey) return;           // same tile: leave it playing
+    hideLive();
+    if (!it || it.kind !== 'input' || it.tv || !design || !design.livePreview || mode !== 'dock') return;
+    liveKey = key;
+    var step = liveStep;
+    liveTimer = setTimeout(function () { if (step === liveStep) openLive(it); }, LIVE_DWELL_MS);
+  }
+
+  function openLive(it) {
+    var root = document.documentElement;
+    if (liveKey !== it.key || mode !== 'dock' || document.hidden || root.classList.contains('ambient') || !tileEls[it.key]) return;
+    var step = liveStep;
+    var card = $('live-card');
+    liveTile = stageRect(tileEls[it.key].el);
+    var cx = liveTile.x + liveTile.w / 2;
+    var target = {
+      x: clamp(cx - LIVE_W / 2, 60, 1920 - 60 - LIVE_W),
+      y: clamp(liveTile.y + liveTile.h + 16 - LIVE_H, 60, 1080 - 60 - LIVE_H),
+      w: LIVE_W, h: LIVE_H
+    };
+    $('lc-title').textContent = it.label + '  ·  HDMI ' + it.hdmi;
+    card.classList.add('instant');
+    placeCard(liveTile);
+    card.classList.add('on', 'loading');
+    requestAnimationFrame(function () {
+      card.classList.remove('instant');
+      requestAnimationFrame(function () {
+        if (step !== liveStep) return;
+        placeCard(target);
+        setTimeout(function () {
+          if (step !== liveStep) return;
+          P.showInputPreview(it.hdmi, [target.x, target.y, target.w, target.h]).then(function (how) {
+            if (step !== liveStep) { P.hideInputPreview(); return; }
+            liveOn = true;
+            stage.style.setProperty('--hole-x', target.x + 'px');
+            stage.style.setProperty('--hole-y', target.y + 'px');
+            stage.style.setProperty('--hole-w', target.w + 'px');
+            stage.style.setProperty('--hole-h', target.h + 'px');
+            root.classList.toggle('live-fake', how === 'preview');
+            root.classList.add('live-hole');
+            card.classList.remove('loading');
+          }, function () {
+            if (step === liveStep) $('lc-wait').textContent = 'No picture from HDMI ' + it.hdmi;
+          });
+        }, 360);
+      });
+    });
+    $('lc-wait').textContent = 'HDMI ' + it.hdmi;
   }
 
   function hideLive() {
+    liveStep += 1;
     clearTimeout(liveTimer);
     liveTimer = null;
+    liveKey = null;
     var root = document.documentElement;
-    if (!liveOn && !root.classList.contains('live-on')) return;
-    liveOn = false;
-    root.classList.remove('live-on');
+    var card = $('live-card');
+    root.classList.remove('live-hole');
     root.classList.remove('live-fake');
-    P.hideInputPreview();
+    if (liveOn) { liveOn = false; P.hideInputPreview(); }
+    if (card.classList.contains('on')) {
+      if (liveTile) placeCard(liveTile);
+      card.classList.remove('on');
+      card.classList.remove('loading');
+    }
   }
   GH.hideLive = hideLive;
 
+  // ---------- keep the clock clear of the tiles and the Top Shelf ----------
+  var clockBase = 1;
+  function fitClock() {
+    if (mode === 'apps' || mode === 'apps-move') return;
+    var clock = $('clock');
+    var z = clockBase;
+    clock.style.zoom = String(z);
+    for (var pass = 0; pass < 2; pass++) {
+      var c = stageRect(clock);
+      var limit = stageRect(dock).y - 28;
+      if (design && design.face === 'tv') limit = Math.min(limit, 196);   // above the Top Shelf artwork
+      var bottom = c.y + c.h;
+      if (bottom <= limit || c.h <= 0) break;
+      z = Math.max(0.45, z * (limit - c.y) / (bottom - c.y));
+      clock.style.zoom = String(z);
+    }
+  }
+  GH.fitClock = function () { setTimeout(fitClock, 30); };
   // Advanced settings from the phone website.
   function applyAdvanced(a) {
     var root = document.documentElement;
-    ['clock-small', 'clock-large'].forEach(function (c) { root.classList.remove(c); });
-    if (a.clockSize !== 'medium') root.classList.add('clock-' + a.clockSize);
+    clockBase = { small: 0.75, medium: 1, large: 1.3 }[a.clockSize] || 1;
     ['glass-clear', 'glass-frosted'].forEach(function (c) { root.classList.remove(c); });
     if (a.glass !== 'normal') root.classList.add('glass-' + a.glass);
     root.classList.toggle('no-brand', !a.showBrand);
@@ -1112,10 +1227,12 @@
     root.classList.toggle('no-photo-credit', !a.photoCredits);
     root.classList.toggle('no-video-credit', !a.videoCredits);
     cfg.longPressMs = a.holdMs;
+    if (guestsSettings.tile !== guestTileOn) { guestTileOn = guestsSettings.tile; layoutChangedGuests = true; }
     backOnHome = a.backOnHome;
     hiddenMenuOn = a.hiddenMenu;
     var size = TILE_SIZES[a.tileSize] || TILE_SIZES.normal;
-    var layoutChanged = size[0] !== TILE_MAX || a.addTile !== addTileOn;
+    var layoutChanged = size[0] !== TILE_MAX || a.addTile !== addTileOn || layoutChangedGuests;
+    layoutChangedGuests = false;
     TILE_MAX = size[0];
     TILE_MIN = size[1];
     addTileOn = a.addTile;
@@ -1127,6 +1244,7 @@
     }
     if (style.textContent !== a.css) style.textContent = a.css;
     if (layoutChanged) { TILE = 0; rebuildDock(); }
+    GH.fitClock();
   }
 
   function stillNow() {
@@ -1148,6 +1266,7 @@
     cfg.video.quality = s.screensaver.quality;
     if (GH.setAmbient) GH.setAmbient({ afterMs: s.screensaver.afterMin * 60000, nightEnabled: s.night.enabled, nightFrom: s.night.from, nightTo: s.night.to });
     if (GH.Weather) GH.Weather.configure(s.weather);
+    guestsSettings = s.guests || guestsSettings;
     if (s.advanced) applyAdvanced(s.advanced);
     if (s.design) applyDesign(s.design);
     if (s.home) {
@@ -1315,16 +1434,79 @@
     panelButtons.forEach(function (b, i) { if (b.el) b.el.classList.toggle('focused', i === panelFocus); });
   }
 
+  // ---------- screen time ----------
+  var openUsage = null;            // { id } of the app opened last, until GLOT is back
+  function startUsage(it) {
+    if (!photoService || ['app', 'input', 'web', 'youtube'].indexOf(it.kind) < 0) return;
+    var id = Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+    openUsage = { id: id, hidden: false };
+    D.logUsage({ id: id, key: it.key || ('app:' + it.id), label: it.label, kind: it.kind });
+  }
+  function endUsage() {
+    if (!openUsage || !openUsage.hidden) return;
+    D.logUsage({ id: openUsage.id, end: Date.now() });
+    openUsage = null;
+  }
+
+  // ---------- Guests screen: Wi-Fi and photo-drop QR codes ----------
+  var guestTimer = null;
+  var guestShown = { wifi: null, drop: null };
+
+  function updateGuests() {
+    if (mode !== 'guests' || document.hidden) return;
+    D.wifi().then(function (w) {
+      if (mode !== 'guests') return;
+      var has = !!(w && w.ssid);
+      $('g-wifi').classList.toggle('off', !has);
+      $('g-wifi-name').textContent = has ? w.ssid : 'Add your Wi-Fi on the website: Settings, Guest Wi-Fi';
+      $('g-wifi-pw').textContent = has && w.password ? 'Password: ' + w.password : '';
+      if (has && w.qr !== guestShown.wifi) { drawQrOn($('g-wifi-qr'), w.qr); guestShown.wifi = w.qr; }
+    });
+    D.drop().then(function (d) {
+      if (mode !== 'guests' || !d || !d.url) return;
+      var url = d.url.replace(/\/+$/, '') + '/drop#d=' + d.token;
+      if (url !== guestShown.drop) { drawQrOn($('g-drop-qr'), url); guestShown.drop = url; }
+      if (guestShown.added !== undefined && d.added > guestShown.added) toast((d.added - guestShown.added === 1 ? 'A photo was' : (d.added - guestShown.added) + ' photos were') + ' added');
+      guestShown.added = d.added;
+    });
+  }
+
+  function openGuests() {
+    hideLive();
+    mode = 'guests';
+    guestShown = { wifi: null, drop: null, added: undefined };
+    scrim.classList.add('open');
+    $('guests').classList.add('open');
+    dock.classList.add('away');
+    label.classList.remove('on');
+    updateGuests();
+    clearInterval(guestTimer);
+    guestTimer = setInterval(updateGuests, 4000);
+  }
+
+  function closeGuests() {
+    clearInterval(guestTimer);
+    guestTimer = null;
+    D.dropWithdraw();
+    scrim.classList.remove('open');
+    $('guests').classList.remove('open');
+    dock.classList.remove('away');
+    label.classList.add('on');
+    mode = 'dock';
+    setTimeout(function () { lastShelfKey = null; updateShelf(items[focus]); }, 50);
+  }
+
   // ---------- sign-in QR code on the + panel ----------
   var qrTimer = null;
   var qrShown = null;
   var qrUses = null;
 
-  function drawQr(text) {
+  function drawQr(text) { drawQrOn($('qr-canvas'), text); }
+
+  function drawQrOn(canvas, text) {
     var code = window.qrcode(0, 'M');
     code.addData(text);
     code.make();
-    var canvas = $('qr-canvas');
     var n = code.getModuleCount();
     var quiet = 4;
     var cell = Math.floor(canvas.width / (n + quiet * 2));
@@ -1442,6 +1624,7 @@
       e.preventDefault();
       if (mode === 'menu') closeMenu();
       else if (mode === 'panel') closePanel();
+      else if (mode === 'guests') closeGuests();
       else if (mode === 'apps-move') finishMove(false);
       else if (mode === 'apps') closeAllApps();
       else if (!e.repeat && GH.enterAmbient && backOnHome === 'aerials') GH.enterAmbient();   // Home: straight to the aerials
@@ -1465,6 +1648,7 @@
       }
       return;
     }
+    if (mode === 'guests') { if (k === KEY.ENTER && !e.repeat) closeGuests(); return; }
     if (mode === 'panel') {
       if (k === KEY.ENTER) { if (!e.repeat) panelAction(panelButtons[panelFocus]); return; }
       // Buttons sit in one row; the small YouTube switch is alone below it.
@@ -1683,6 +1867,7 @@
   function onVisibility() {
     if (document.hidden) {
       hideLive();
+      if (openUsage) openUsage.hidden = true;
       document.documentElement.classList.add('paused');
       clearInterval(clockTimer);
       clearInterval(pollTimer);
@@ -1694,6 +1879,7 @@
       return;
     }
     document.documentElement.classList.remove('paused');
+    endUsage();
     setLaunching(false);
     renderClock();
     clearInterval(clockTimer);
@@ -1703,7 +1889,7 @@
     if (backdrop) backdrop.resume();
     ensureService();
     resolveApps();
-    frameProbe(1500);
+    frameProbe(2500);
   }
 
   // ---------- performance guard ----------
@@ -1716,6 +1902,7 @@
   }
 
   var probing = false;
+  var liteUntil = 0;
   function frameProbe(delay) {
     if (Q.lite === '1') { setLite(true); return; }
     if (!window.requestAnimationFrame || Q.still === '1' || cfg.preview || probing) return;
@@ -1731,8 +1918,9 @@
       if (times.length < 20) return;
       times.sort(function (a, b) { return a - b; });
       var median = times[Math.floor(times.length / 2)];
-      if (median > 26) setLite(true);
-      else if (median < 20) setLite(false);
+      // Once lite, stay lite for a while: switching the glass on and off is the flicker.
+      if (median > 26) { setLite(true); liteUntil = Date.now() + 20 * 60 * 1000; }
+      else if (median < 18 && Date.now() > liteUntil) setLite(false);
     }
     setTimeout(function () {
       if (document.hidden) { probing = false; return; }

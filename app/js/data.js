@@ -173,6 +173,17 @@
     return request('POST', withKey('/local/restart'), {}, 3000).then(function (r) { return r.status === 200; });
   };
 
+  // Screen time: { id, key, label, kind } at launch, { id, end } on return.
+  D.logUsage = function (entry) { return request('POST', withKey('/local/usage'), entry, 4000); };
+  // Guests screen: Wi-Fi QR text (and password if shown), and the photo-drop code.
+  D.wifi = function () {
+    return request('GET', withKey('/local/wifi'), undefined, 4000).then(function (r) { return r.status === 200 && r.data ? r.data : null; });
+  };
+  D.drop = function () {
+    return request('GET', withKey('/local/drop'), undefined, 4000).then(function (r) { return r.status === 200 && r.data && r.data.token ? r.data : null; });
+  };
+  D.dropWithdraw = function () { request('DELETE', withKey('/local/drop'), undefined, 4000); };
+
   D.saveCatalog = function (catalog) {
     return request('POST', withKey('/local/catalog'), catalog, 5000).then(function (r) {
       if (r.status !== 200) throw new Error('service');

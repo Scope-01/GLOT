@@ -241,6 +241,7 @@
     document.getElementById('wx-place').textContent = cfg.place || '';
     root.classList.toggle('stale-now', !showNow);
     root.classList.add('on');
+    if (GH.fitClock) GH.fitClock();
   }
 
   function url() {

@@ -21,7 +21,7 @@
   <div id="shelf" aria-hidden="true">
     <div id="shelf-text"><div id="shelf-kind"></div><div id="shelf-title"></div></div>
     <div id="shelf-media"></div>
-    <div id="live-frame"><div id="live-fake"></div><span id="live-badge">LIVE</span></div>
+
   </div>
 
   <div id="brand" aria-hidden="true">
@@ -52,6 +52,7 @@
     <div id="dock-viewport"><div id="dock-row"></div></div>
   </div>
   <div id="label"></div>
+  <div id="live-card"><div id="lc-wait"></div><span class="lc-badge">LIVE</span><div id="lc-title"></div></div>
   <div id="apps-hint" aria-hidden="true"><span class="chevron"></span>All apps</div>
   <div id="video-credit"></div>
 
@@ -91,6 +92,25 @@
     <div class="panel-stats" id="panel-stats"></div>
     <div class="panel-buttons" id="panel-buttons"></div>
     <div class="panel-diag" id="panel-diag"></div>
+  </div>
+
+  <div id="guests" role="dialog" aria-label="Guests">
+    <div class="g-title">Welcome</div>
+    <div class="g-grid">
+      <div class="g-card" id="g-wifi">
+        <canvas id="g-wifi-qr" width="300" height="300"></canvas>
+        <div class="g-name">Join the Wi-Fi</div>
+        <div class="g-sub" id="g-wifi-name"></div>
+        <div class="g-sub" id="g-wifi-pw"></div>
+      </div>
+      <div class="g-card" id="g-drop">
+        <canvas id="g-drop-qr" width="300" height="300"></canvas>
+        <div class="g-name">Add your photos</div>
+        <div class="g-sub">They join the slideshow</div>
+        <div class="g-sub" id="g-drop-count"></div>
+      </div>
+    </div>
+    <div class="g-foot">Point your phone’s camera at a code  ·  Back to close</div>
   </div>
 
   <div id="toast"></div>
