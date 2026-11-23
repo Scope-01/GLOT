@@ -36,7 +36,7 @@
     photoService: true,
     // Keep equal to VERSION in service/server.js. After an update the app asks
     // an older running service to restart once, so no power cut is needed.
-    serviceVersion: '1.12.0',
+    serviceVersion: '1.12.1',
 
     // true on older TVs where apps won't start from the dock (on a 2018 TV
     // Netflix stayed black and Prime Video crashed): apps with a `storeId` are

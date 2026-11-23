@@ -167,6 +167,30 @@
     try { tz.tvwindow.hide(function () {}, function () {}, 'MAIN'); } catch (e) { /* already hidden */ }
   };
 
+  // Hiding the window leaves the TV switched to that HDMI input, and while it
+  // is, the screensaver's video plays to a black screen. This hands the main
+  // window back to the tuner (still hidden) so our own video can be seen.
+  P.releaseInputPreview = function () {
+    if (!tz || !tz.tvwindow) return Promise.resolve('preview');
+    var now = null;
+    try { now = tz.tvwindow.getSource('MAIN'); } catch (e) { /* no window */ }
+    if (!now || now.type !== 'HDMI') return Promise.resolve('free');
+    return new Promise(function (resolve) {
+      try {
+        tz.systeminfo.getPropertyValue('VIDEOSOURCE', function (info) {
+          var all = (info.connected || []).concat(info.disconnected || []);
+          var tuner = null;
+          for (var i = 0; i < all.length; i++) if (all[i].type === 'TV') { tuner = all[i]; break; }
+          if (!tuner) { resolve('no tuner'); return; }
+          try {
+            tz.tvwindow.hide(function () {}, function () {}, 'MAIN');
+            tz.tvwindow.setSource(tuner, function () { resolve('released'); }, function () { resolve('failed'); }, 'MAIN');
+          } catch (e) { resolve('failed'); }
+        }, function () { resolve('failed'); });
+      } catch (e) { resolve('failed'); }
+    });
+  };
+
   // Samsung's own Home, for the hidden menu.
   P.openSamsungHome = function () {
     if (!tz) return previewLaunch('Samsung Home');

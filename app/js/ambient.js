@@ -54,7 +54,11 @@
     if (GH.hideLive) GH.hideLive();
     html.classList.add('ambient');
     enteredAt = Date.now();
-    if (GH.VideoSaver) GH.VideoSaver.start();
+    if (GH.VideoSaver) {
+      // The TV must not be left on an HDMI input, or the video plays to black.
+      var free = GH.platform && GH.platform.releaseInputPreview ? GH.platform.releaseInputPreview() : Promise.resolve();
+      free.then(function () { if (html.classList.contains('ambient')) GH.VideoSaver.start(); });
+    }
   }
   GH.enterAmbient = enter;   // Back on the home screen goes straight to the screensaver
 

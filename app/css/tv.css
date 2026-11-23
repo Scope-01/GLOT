@@ -1206,7 +1206,8 @@ html.face-bigclock .wd { font-size: 30px; }
   width: 0;
   height: 0;
   z-index: 6;
-  border-radius: 16px;
+  /* the TV draws its picture with square corners, so the card nearly matches */
+  border-radius: 4px;
   background: #050608;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 40px 90px rgba(0, 0, 0, 0.65);
   opacity: 0;
@@ -1255,8 +1256,7 @@ html.face-bigclock .wd { font-size: 30px; }
 html.live-hole #label { opacity: 0; }
 /* Cut the card's inside out of the page so the TV's picture shows through. */
 html.live-hole #stage {
-  /* the hole is a rounded rectangle, so the picture's corners match the card */
-  -webkit-mask-image: linear-gradient(#000, #000), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 360' preserveAspectRatio='none'><rect width='640' height='360' rx='16' ry='16' fill='black'/></svg>");
+  -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
   -webkit-mask-size: 100% 100%, var(--hole-w) var(--hole-h);
   -webkit-mask-position: 0 0, var(--hole-x) var(--hole-y);
   -webkit-mask-repeat: no-repeat;
