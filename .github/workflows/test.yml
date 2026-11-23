@@ -36,6 +36,6 @@ jobs:
           node dev/test-home-control.js
       - name: Website and service API
         run: dev/test-api.sh
-      # dev/ui-test.js still checks Glass Home's behaviour (Back does nothing, six apps,
-      # arrows wake the screensaver); it runs again once it's updated for GLOT.
+      - name: TV app and website in a browser
+        run: node dev/ui-test.js
 

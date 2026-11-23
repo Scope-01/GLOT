@@ -15,7 +15,11 @@ const CANDIDATES = [
   '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'
+  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser',
+  process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+  process.env['ProgramFiles(x86)'] && path.join(process.env['ProgramFiles(x86)'], 'Google', 'Chrome', 'Application', 'chrome.exe'),
+  process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+  process.env['ProgramFiles(x86)'] && path.join(process.env['ProgramFiles(x86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe')
 ].filter(Boolean);
 const BRAVE = CANDIDATES.find((p) => fs.existsSync(p)) || CANDIDATES[0];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -28,6 +32,9 @@ async function launch() {
     '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync',
     '--disable-background-networking', '--disable-component-update', '--disable-default-apps',
     '--disable-notifications', '--mute-audio',
+    // Pages left open behind others (the TV page during the phone checks) keep
+    // their timers: otherwise Chrome wakes them about once a minute.
+    '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows',
     '--disable-features=MediaRouter,DialMediaRouteProvider,CastMediaRouteProvider,Translate,OptimizationHints',
     '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0', 'about:blank'
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
