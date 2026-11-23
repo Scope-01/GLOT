@@ -561,6 +561,9 @@ html.lite #wx-week {
   transition: opacity 0.8s ease;
 }
 .video-black.on { opacity: 1; }
+/* The TV's own player draws under the whole page: open the page up over it. */
+html.av-live, html.av-live body, html.av-live #stage { background: transparent !important; }
+html.av-live #bg .bg-layer { visibility: hidden; }
 #video-credit {
   position: absolute;
   left: 72px;

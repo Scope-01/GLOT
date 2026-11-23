@@ -149,6 +149,9 @@
   P.showInputPreview = function (n, rect) {
     if (!tz) return Promise.resolve('preview');
     if (!tz.tvwindow) return Promise.reject(new Error('no tvwindow'));
+    // From now until the app restarts, <video> in this page plays to black
+    // (the TV ties its video layer to this window); the screensaver checks this.
+    P.tvWindowUsed = true;
     return findSource(n).then(function (src) {
       if (!src) throw new Error('HDMI ' + n + ' is not reported by the TV');
       return new Promise(function (resolve, reject) {
@@ -336,6 +339,7 @@
           }
           if (!src) { reject(new Error('HDMI ' + n + ' is not reported by the TV')); return; }
           try {
+            P.tvWindowUsed = true;
             tz.tvwindow.setSource(src, function () {
               // The input is already switched; the viewer only makes it full screen.
               P.launchApp('org.tizen.tv-viewer').then(function () { resolve('input'); }, function () { resolve('input'); });

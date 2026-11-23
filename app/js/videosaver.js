@@ -13,6 +13,12 @@
  * Every video element is removed on wake, so an app opened next can have the
  * TV's video decoder.
  *
+ * Once GLOT has shown an HDMI input in a window (the live card), the TV keeps
+ * its video layer tied to that window and every <video> in the page plays to
+ * black until the app restarts. The TV's own player (AVPlay) still works, so
+ * from then on the screensaver uses it instead: one clip at a time, fading
+ * through black, with the page made see-through over it.
+ *
  * Preview and tests: ?video=0 turns it off; ?decoders=1 acts as a TV with one
  * video decoder.
  */
@@ -41,6 +47,11 @@
   var dropped = {};
   var levelFails = {};
   var oneDecoder = Q.decoders === '1' || !!(GH.ls && GH.ls.get(ONE_DECODER_KEY));
+  var html = document.documentElement;
+  var avMode = false;             // this run uses the TV's own player
+  var avCur = null;               // { idx, clip, cap }
+  var avToken = 0;
+  var avPoll = null;
 
   // Apple's captions: [seconds, English, Arabic]. Each new place shows for a
   // while, then fades, so nothing sits still on an OLED.
@@ -239,7 +250,95 @@
     request(target + 1, false);
   }
 
+  // ---------- the TV's own player (after the live card has been used) ----------
+  function avUsable() {
+    return !!(window.webapis && webapis.avplay && GH.platform && GH.platform.tvWindowUsed);
+  }
+  function avClose() {
+    try { webapis.avplay.stop(); } catch (e) { /* not playing */ }
+    try { webapis.avplay.close(); } catch (e) { /* not open */ }
+  }
+  function avTime() {
+    try { return webapis.avplay.getCurrentTime() / 1000; } catch (e) { return 0; }
+  }
+
+  // Fades to black over whatever plays, then loads the clip at idx.
+  function avRequest(idx, fromKey) {
+    if (!running || !order.length) return;
+    idx = wrap(idx);
+    target = idx;
+    var clip = order[idx];
+    if (fromKey) showCredit(cfg.captions === 'off' ? '' : (captionText(captionAt(clip, 0)) || clip.credit));
+    var token = ++avToken;
+    clearInterval(avPoll);
+    var wasPlaying = !!avCur;
+    avCur = null;
+    black.classList.add('on');
+    setTimeout(function () {
+      if (token === avToken && running) avLoad(clip, idx, sources(clip), 0, token);
+    }, wasPlaying ? 850 : 0);
+  }
+
+  function avLoad(clip, idx, srcs, i, token) {
+    if (!srcs[i]) { avFailed(token); return; }
+    avClose();
+    var A = webapis.avplay;
+    var started = false;
+    var settled = false;
+    function next() {
+      if (settled || token !== avToken || !running) return;
+      settled = true;
+      clearTimeout(timer);
+      avClose();
+      avLoad(clip, idx, srcs, i + 1, token);
+    }
+    var timer = setTimeout(next, START_TIMEOUT_MS);
+    try {
+      A.open(srcs[i].src);
+      A.setDisplayRect(0, 0, 1920, 1080);
+      A.setListener({
+        onstreamcompleted: function () { if (token === avToken && running) avRequest(target + 1, false); },
+        onerror: function () {
+          if (token !== avToken || !running) return;
+          if (started) avRequest(target + 1, false); else next();
+        }
+      });
+      A.prepareAsync(function () {
+        if (token !== avToken || !running || settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { A.play(); } catch (e) { settled = false; next(); return; }
+        started = true;
+        failures = 0;
+        avCur = { idx: idx, clip: clip, cap: captionAt(clip, 0) };
+        html.classList.add('av-live');
+        black.classList.remove('on');           // the page opens up over the clip
+        showCredit(avCur.cap ? captionText(avCur.cap) : (cfg.captions === 'off' ? '' : clip.credit));
+        avPoll = setInterval(function () {
+          if (!avCur || token !== avToken) return;
+          var cap = captionAt(avCur.clip, avTime());
+          if (cap && cap !== avCur.cap) { avCur.cap = cap; showCredit(captionText(cap)); }
+        }, 1000);
+      }, next);
+    } catch (e) { next(); }
+  }
+
+  function avFailed(token) {
+    if (token !== avToken) return;
+    failures += 1;
+    if (failures >= order.length) { stop(); return; }
+    avRequest(target + 1, false);
+  }
+
   function stop() {
+    if (avMode) {
+      avToken += 1;
+      clearInterval(avPoll);
+      avClose();
+      avCur = null;
+      html.classList.remove('av-live');
+      avMode = false;
+    }
     running = false;
     clearTimeout(stopTimer);
     dropPending();
@@ -257,7 +356,8 @@
     dropped = {};
     levelFails = {};
     order = shuffled(clips);
-    request(0, false);
+    avMode = avUsable();
+    if (avMode) avRequest(0, false); else request(0, false);
     // Leaving the TV on should not stream forever; the photos take over.
     var mins = cfg.stopAfterMin || 0;
     clearTimeout(stopTimer);
@@ -269,15 +369,20 @@
   function step(dir) {
     if (!running || !order.length) return;
     failures = 0;
-    request(target + (dir < 0 ? -1 : 1), true);
+    if (avMode) avRequest(target + (dir < 0 ? -1 : 1), true);
+    else request(target + (dir < 0 ? -1 : 1), true);
   }
+
+  // Leaving GLOT (an app opens) frees the player and the decoder.
+  document.addEventListener('visibilitychange', function () { if (document.hidden && running) stop(); });
 
   // A button press in the screensaver brings back the current place's caption.
   function showCaptionNow() {
-    if (!running || !current || !current.v) return false;
-    var cap = captionAt(current.clip, current.v.currentTime);
+    var clip = avMode ? (avCur && avCur.clip) : (current && current.v && current.clip);
+    if (!running || !clip) return false;
+    var cap = captionAt(clip, avMode ? avTime() : current.v.currentTime);
     var text = cap ? captionText(cap) : '';
-    if (!text && cfg.captions !== 'off') text = current.clip && current.clip.credit;
+    if (!text && cfg.captions !== 'off') text = clip.credit;
     if (!text) return false;
     showCredit(text);
     return true;
@@ -291,7 +396,7 @@
     isRunning: function () { return running; },
     // For tests: what is on screen and loading.
     debug: function () {
-      return { oneDecoder: oneDecoder, target: target, current: current && current.idx, pending: pending && pending.idx,
+      return { av: avMode, oneDecoder: oneDecoder, target: target, current: current && current.idx, pending: pending && pending.idx,
         videos: host.querySelectorAll('video').length, black: black.classList.contains('on') };
     }
   };
