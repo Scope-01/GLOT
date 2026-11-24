@@ -40,7 +40,7 @@ function defaults() {
     advanced: {
       clockSize: 'medium', showBrand: true, glass: 'normal', tileSize: 'normal', appsHint: true,
       photoCredits: true, videoCredits: true, holdMs: 700, backOnHome: 'aerials', hiddenMenu: true,
-      addTile: true, pixelShift: true, css: ''
+      addTile: true, pixelShift: true, fpsMeter: false, css: ''
     },
     design: {
       face: 'tv', accent: 'auto', background: 'photos', gradient: 'midnight', captions: 'en', livePreview: true,
@@ -215,6 +215,7 @@ function merge(current, patch) {
   a.hiddenMenu = adv.hiddenMenu !== false;
   a.addTile = adv.addTile !== false;
   a.pixelShift = adv.pixelShift !== false;
+  a.fpsMeter = adv.fpsMeter === true;
   // Custom CSS for the TV screen only; it can't run code. Size-limited.
   a.css = typeof adv.css === 'string' ? adv.css.replace(/\u0000/g, '').slice(0, 20000) : '';
 

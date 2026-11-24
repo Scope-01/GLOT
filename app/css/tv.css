@@ -1305,3 +1305,40 @@ html.face-tv #shelf::before {
   transition: opacity 0.4s ease;
   pointer-events: none;
 }
+/* ---------- FPS meter (development) ---------- */
+#fps-meter {
+  position: fixed;
+  left: 24px;
+  top: 20px;
+  z-index: 9999;
+  padding: 8px 10px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  font: 600 16px/1.2 "SamsungOneUI", "SamsungOne", Arial, sans-serif;
+  color: #fff;
+  pointer-events: none;
+  will-change: transform;
+}
+#fps-meter .fps-text { white-space: pre; margin-bottom: 5px; }
+#fps-meter canvas { display: block; width: 180px; height: 34px; }
+#fps-meter.good .fps-text { color: #34c759; }
+#fps-meter.ok .fps-text { color: #ffcc00; }
+#fps-meter.bad .fps-text { color: #ff453a; }
+
+/* ---------- pre-blurred dock glass ---------- */
+/* A live backdrop blur is redrawn every frame anything in the dock moves.
+   Instead the photo behind the dock is blurred once into a canvas inside it
+   (home.js, syncDockGlass), tinted like the glass, and simply moves with it. */
+#dock-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  display: none;
+}
+html.baked-glass #dock-glass { display: block; }
+html.baked-glass #dock { -webkit-backdrop-filter: none; backdrop-filter: none; }

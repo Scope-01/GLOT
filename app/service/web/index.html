@@ -628,6 +628,7 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
           <div class="optrow"><span>Back on Home</span><select id="adv-back"><option value="aerials">Opens the aerials</option><option value="nothing">Does nothing</option></select></div>
           <div class="optrow"><span>Hidden menu (Up ×3)</span><div class="seg small" id="adv-hidden"><button type="button" data-v="on">On</button><button type="button" data-v="off">Off</button></div></div>
           <div class="optrow"><span>+ tile on Home</span><div class="seg small" id="adv-add"><button type="button" data-v="on">Show</button><button type="button" data-v="off">Hide</button></div></div>
+          <div class="optrow"><span>FPS meter (development)</span><div class="seg small" id="adv-fps"><button type="button" data-v="off">Off</button><button type="button" data-v="on">On</button></div></div>
           <p class="hint">With the + tile hidden, the QR code and password are in the hidden menu. Turning the hidden menu off hides Samsung Home, Clean RAM and the QR code.</p>
         </div>
         <div class="card glass">
@@ -1718,6 +1719,7 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     setSelect('adv-back', a.backOnHome);
     setSeg('adv-hidden', a.hiddenMenu ? 'on' : 'off');
     setSeg('adv-add', a.addTile ? 'on' : 'off');
+    setSeg('adv-fps', a.fpsMeter ? 'on' : 'off');
     if (!typing($('adv-css'))) $('adv-css').value = a.css;
   }
   function adv(patch) { save({ advanced: patch }); }
@@ -1726,7 +1728,7 @@ input[type=date] { min-height: 44px; padding: 0 12px; border-radius: 12px; borde
     $(x[0]).addEventListener('change', function () { var p = {}; p[x[1]] = $(x[0]).value; adv(p); });
   });
   $('adv-hold').addEventListener('change', function () { adv({ holdMs: +$('adv-hold').value }); });
-  [['adv-brand', 'showBrand'], ['adv-hint', 'appsHint'], ['adv-pcredit', 'photoCredits'], ['adv-vcredit', 'videoCredits'], ['adv-hidden', 'hiddenMenu'], ['adv-add', 'addTile']].forEach(function (x) {
+  [['adv-brand', 'showBrand'], ['adv-hint', 'appsHint'], ['adv-pcredit', 'photoCredits'], ['adv-vcredit', 'videoCredits'], ['adv-hidden', 'hiddenMenu'], ['adv-add', 'addTile'], ['adv-fps', 'fpsMeter']].forEach(function (x) {
     onSeg(x[0], function (v) { var p = {}; p[x[1]] = v === 'on'; adv(p); });
   });
   $('adv-css-save').addEventListener('click', function () { adv({ css: $('adv-css').value }); });

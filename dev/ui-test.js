@@ -254,7 +254,7 @@ async function makeTestImages(browser, dir) {
     await tv.key(K.UP);
     await tv.key(K.UP);
     s = await tvState(tv);
-    check('Up x3 opens the hidden menu', s.menuOpen && JSON.stringify(s.menuItems) === JSON.stringify(['Samsung Home*', 'Clean RAM', 'Photos, website and QR code', 'Guests: Wi-Fi and photo drop', 'Restart this screen', 'Restart background service', 'Startup times', 'Cancel']), s);
+    check('Up x3 opens the hidden menu', s.menuOpen && JSON.stringify(s.menuItems.map((x) => x.replace(/\s+/g, ' '))) === JSON.stringify(['Samsung Home*', 'Clean RAM', 'Photos, website and QR code', 'Guests: Wi-Fi and photo drop', 'Restart this screen', 'Restart background service', 'Startup times', 'FPS meter: off', 'Cancel']), s);
     await sleep(300);
     await tv.shot(path.join(OUT, 'tv-hidden-menu.png'));
     await tv.key(K.ENTER);                 // Samsung Home
@@ -436,6 +436,13 @@ async function makeTestImages(browser, dir) {
     // Info (457) in the screensaver keeps it on (photos: no caption to show, but no wake either when video runs).
     const capOk = await tvAmb.eval(`typeof GH.VideoSaver.showCaption === 'function'`);
     check('the screensaver can show its caption on demand', capOk);
+    // FPS meter (development): appears, measures, and goes away
+    await tvAmb.eval(`GH.wakeAmbient(); GH.Fps.set(true); true`);
+    await sleep(1300);
+    const fpsOn = await tvAmb.eval(`({ shown: !document.getElementById('fps-meter').hidden, text: document.querySelector('#fps-meter .fps-text').textContent, stats: GH.Fps.stats() })`);
+    check('the FPS meter shows frames per second', fpsOn.shown && /\d+ fps/.test(fpsOn.text) && fpsOn.stats.fps > 0, fpsOn);
+    await tvAmb.eval(`GH.Fps.set(false); true`);
+    check('the FPS meter turns off', await tvAmb.eval(`document.getElementById('fps-meter').hidden && !GH.Fps.isOn()`));
     // OLED care and the daytime look
     const shift = await tvAmb.eval(`(() => { const h = document.documentElement; const before = getComputedStyle(document.getElementById('clock')).translate; h.style.setProperty('--shift-x', '6px'); h.style.setProperty('--shift-y', '-3px'); return [h.classList.contains('pixel-shift'), before, getComputedStyle(document.getElementById('clock')).translate]; })()`);
     check('screen care moves the clock a few pixels', shift[0] === true && shift[2] === '6px -3px', shift);

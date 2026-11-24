@@ -506,6 +506,7 @@
     var rowW = n * TW + (n - 1) * GAP;
     var viewW = Math.min(rowW, MAX_ROW);
     viewport.style.width = (viewW + 2 * EDGE) + 'px';
+    if (viewW !== glassViewW) { glassViewW = viewW; syncDockGlassSoon(); }
     var x = focus * (TW + GAP);
     var scrolling = rowW > MAX_ROW;
     if (!scrolling) offset = 0;
@@ -789,6 +790,7 @@
   }
 
   function openHiddenMenu() {
+    hideLive();                      // the live card must not sit over the menu
     menuItems = [
       { label: 'Samsung Home', run: function () {
         P.openSamsungHome().then(function (how) {
@@ -801,6 +803,12 @@
       { label: 'Restart this screen', run: function () { location.reload(); } },
       { label: 'Restart background service', run: restartServiceNow },
       { label: 'Startup times', run: showBootTimes },
+      { label: 'FPS meter: ' + (GH.Fps && GH.Fps.isOn() ? 'on' : 'off'), run: function () {
+        var now = !(GH.Fps && GH.Fps.isOn());
+        ls.set('gh.fps', now ? 'on' : 'off');
+        applyFps();
+        toast('FPS meter ' + (now ? 'on' : 'off'));
+      } },
       { label: 'Cancel', run: function () {} }
     ];
     menuFocus = 0;
@@ -1238,6 +1246,12 @@
     root.classList.toggle('no-photo-credit', !a.photoCredits);
     root.classList.toggle('no-video-credit', !a.videoCredits);
     if (GH.setPixelShift) GH.setPixelShift(a.pixelShift !== false);
+    // The website's switch wins when it changes; the hidden menu's choice is
+    // kept on this TV until then.
+    if (fpsSetting !== null && a.fpsMeter !== fpsSetting) ls.set('gh.fps', null);
+    fpsSetting = a.fpsMeter === true;
+    applyFps();
+    syncDockGlassSoon();
     cfg.longPressMs = a.holdMs;
     if (guestsSettings.tile !== guestTileOn) { guestTileOn = guestsSettings.tile; layoutChangedGuests = true; }
     backOnHome = a.backOnHome;
@@ -1269,11 +1283,78 @@
   if (window.MutationObserver) {
     var wasAmbient = false;
     new MutationObserver(function () {
+      syncDockGlassSoon();
       var now = document.documentElement.classList.contains('ambient');
       if (now === wasAmbient) return;
       wasAmbient = now;
       if (backdrop) backdrop.setTiming(backdrop.opts.interval, stillNow());
     }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // ---------- FPS meter (development) ----------
+  var fpsSetting = null;
+  function applyFps() {
+    if (!GH.Fps) return;
+    var o = ls.get('gh.fps');
+    GH.Fps.set(Q.fps === '1' || (o === 'on' ? true : o === 'off' ? false : !!fpsSetting));
+  }
+
+  // ---------- pre-blurred dock glass ----------
+  // A live backdrop blur behind the dock is redrawn every frame anything in the
+  // dock moves, which costs this TV several fps (and big dips). The photo
+  // behind the dock is blurred once into a canvas inside the dock and tinted
+  // like the glass; it only redraws when the photo, dock size or glass changes.
+  var glassCanvas = null;
+  var glassSig = '';
+  var glassViewW = -1;
+  var glassTimer = null;
+  function syncDockGlassSoon() {
+    clearTimeout(glassTimer);
+    glassTimer = setTimeout(syncDockGlass, 150);
+  }
+  function syncDockGlass() {
+    var root = document.documentElement;
+    // Faces whose dock has no glass panel (Apple TV, Minimal) need none.
+    var noPanel = root.classList.contains('face-tv') || root.classList.contains('face-minimal');
+    var photo = document.querySelector('#bg .bg-layer.show img');
+    var want = !!photo && photo.complete && photo.naturalWidth > 0 && !noPanel &&
+      !root.classList.contains('lite') && !(design && design.background === 'gradient') && !!document.createElement('canvas').getContext;
+    if (!want) { setBaked(root, false); glassSig = ''; return; }
+    var w = dock.offsetWidth;
+    var h = dock.offsetHeight;
+    if (!w || !h) return;
+    var left = Math.round(dock.offsetLeft - w / 2);     // left: 50% with translateX(-50%)
+    var top = dock.offsetTop;
+    var tint = getComputedStyle(root).getPropertyValue('--glass').trim() || 'rgba(28, 28, 30, 0.5)';
+    var src = photo.currentSrc || photo.src;
+    var sig = [src, w, h, left, top, tint].join('|');
+    if (sig !== glassSig) {
+      if (!glassCanvas) {
+        glassCanvas = document.createElement('canvas');
+        glassCanvas.id = 'dock-glass';
+        dock.insertBefore(glassCanvas, dock.firstChild);
+      }
+      try {
+        glassCanvas.width = w;
+        glassCanvas.height = h;
+        var c = glassCanvas.getContext('2d');
+        var s = Math.max(1920 / photo.naturalWidth, 1080 / photo.naturalHeight);
+        var dw = photo.naturalWidth * s;
+        var dh = photo.naturalHeight * s;
+        c.clearRect(0, 0, w, h);
+        c.filter = 'blur(28px) saturate(160%)';
+        c.drawImage(photo, (1920 - dw) / 2 - left, (1080 - dh) / 2 - top, dw, dh);
+        c.filter = 'none';
+        c.fillStyle = tint;
+        c.fillRect(0, 0, w, h);
+        glassSig = sig;
+      } catch (e) { setBaked(root, false); glassSig = ''; return; }
+    }
+    setBaked(root, true);
+  }
+  // Only touch the class when it changes: the class observer above calls back here.
+  function setBaked(root, on) {
+    if (root.classList.contains('baked-glass') !== on) root.classList.toggle('baked-glass', on);
   }
 
   function applySettings(s) {
@@ -1990,7 +2071,7 @@
 
     backdrop = new GH.Backdrop($('bg-a'), $('bg-b'), {
       interval: cfg.photoIntervalMs, fade: cfg.fadeMs, scale: cfg.kenBurnsScale,
-      still: Q.still === '1', onShow: showCredit
+      still: Q.still === '1', onShow: function (it) { showCredit(it); setTimeout(syncDockGlass, 1800); }
     });
     if (st && st.settings) applySettings(st.settings);
     loadManifest().then(function () {
