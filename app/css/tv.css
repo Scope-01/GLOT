@@ -58,7 +58,8 @@ html, body {
 .bg-layer {
   opacity: 0;
   transition: opacity 1.6s ease-in-out;
-  will-change: opacity;
+  /* No will-change: a settled photo is drawn flat into the page (see stillNow
+     in home.js). The browser lifts it onto a layer only while it fades or drifts. */
   overflow: hidden;
 }
 .bg-layer.show { opacity: 1; }
@@ -73,7 +74,6 @@ html, body {
   height: 100%;
   object-fit: cover;
   transform-origin: 50% 50%;
-  will-change: transform;
 }
 
 /* soft dark gradients so white text reads over any photo */
@@ -258,10 +258,13 @@ html, body {
   left: 0;
   background: rgba(0, 0, 0, 0.38);
   opacity: 0;
-  transition: opacity 3s ease;
+  /* Full-screen layers that aren't showing are hidden outright, not just
+     transparent: this TV draws on the CPU, and a hidden layer costs nothing. */
+  visibility: hidden;
+  transition: opacity 3s ease, visibility 0s linear 3s;
   pointer-events: none;
 }
-html.night #night-shade { opacity: 1; }
+html.night #night-shade { opacity: 1; visibility: visible; transition: opacity 3s ease, visibility 0s; }
 
 /* ---------- screensaver: only the photos ---------- */
 #brand, #clock, #shade-top, #shade-left, #shade-bottom { transition: opacity 0.3s ease; }
@@ -558,9 +561,10 @@ html.lite #wx-week {
   z-index: 2;
   background: #000;
   opacity: 0;
-  transition: opacity 0.8s ease;
+  visibility: hidden;
+  transition: opacity 0.8s ease, visibility 0s linear 0.8s;
 }
-.video-black.on { opacity: 1; }
+.video-black.on { opacity: 1; visibility: visible; transition: opacity 0.8s ease, visibility 0s; }
 /* The TV's own player draws under the whole page: open the page up over it. */
 html.av-live, html.av-live body, html.av-live #stage { background: transparent !important; }
 html.av-live #bg .bg-layer { visibility: hidden; }
@@ -610,10 +614,11 @@ html.apps #apps-hint { opacity: 0; transition: opacity 0.2s ease; }
   left: 0;
   background: rgba(4, 8, 11, 0.66);
   opacity: 0;
-  transition: opacity 0.42s ease;
+  visibility: hidden;
+  transition: opacity 0.42s ease, visibility 0s linear 0.42s;
   pointer-events: none;
 }
-html.apps #apps-shade { opacity: 1; }
+html.apps #apps-shade { opacity: 1; visibility: visible; transition: opacity 0.42s ease, visibility 0s; }
 
 #brand, #clock { will-change: transform; }
 #brand, #clock { transition: opacity 0.3s ease, transform 0.46s var(--ease); }
@@ -1080,6 +1085,8 @@ html.face-tv #shelf {
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5);
 }
 #shelf-text.swap { opacity: 0; }
+/* Own layers: the text fade and the colour wash don't repaint what's under them. */
+#shelf-text { will-change: opacity; }
 #shelf-kind {
   font-size: 22px;
   font-weight: 700;

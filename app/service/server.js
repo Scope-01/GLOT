@@ -27,7 +27,7 @@ var storeMod = require('./store.js');
 var settingsMod = require('./settings.js');
 var yt = require('../js/ytparse.js');
 
-var VERSION = '1.14.0';      // keep equal to serviceVersion in js/config.js
+var VERSION = '1.14.1';      // keep equal to serviceVersion in js/config.js
 var COOKIE = 'gh_sid';
 var DAY = 24 * 3600 * 1000;
 var QR_LIFE_MS = 10 * 60 * 1000;

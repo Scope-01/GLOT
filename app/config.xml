@@ -9,7 +9,7 @@
   need a Partner certificate; the app starts the service itself.
 -->
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
-        id="http://glass-home.local/home" version="1.14.0" viewmodes="maximized">
+        id="http://glass-home.local/home" version="1.14.1" viewmodes="maximized">
     <tizen:application id="DclHome001.Home" package="DclHome001" required_version="3.0"/>
     <!-- Home opens the running app without reloading it (see home.js, appcontrol). -->
     <tizen:app-control>

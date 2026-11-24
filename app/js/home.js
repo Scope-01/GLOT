@@ -1081,6 +1081,7 @@
     return m ? m[0] : getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ffffff';
   }
 
+  var shelfTimer = null;
   function updateShelf(it) {
     scheduleLive(it);
     if (!it || !design || design.face !== 'tv' || mode !== 'dock') return;
@@ -1090,13 +1091,16 @@
     var media = $('shelf-media');
     text.classList.add('swap');
     media.classList.remove('on');
-    setTimeout(function () {
+    // The new title and colour are drawn once focus settles, not on every
+    // press of a quick run along the dock: this TV draws on the CPU.
+    clearTimeout(shelfTimer);
+    shelfTimer = setTimeout(function () {
       if (lastShelfKey !== it.key) return;
       $('shelf-kind').textContent = shelfKind(it);
       $('shelf-title').textContent = it.kind === 'add' ? 'Photos and shortcuts' : it.label;
       text.classList.remove('swap');
       $('shelf').style.setProperty('--shelf-tint', shelfTint(it));
-    }, 180);
+    }, 260);
   }
 
   // ---------- live HDMI preview, Netflix style ----------
@@ -1255,8 +1259,21 @@
     GH.fitClock();
   }
 
+  // Photos drift only in the screensaver. On Home a moving full-screen photo
+  // needs its own GPU layer, and on this TV that alone costs ~12 fps whenever
+  // anything else moves; held still, it is drawn flat into the page for free.
   function stillNow() {
-    return Q.still === '1' || !wantDrift || document.documentElement.classList.contains('lite');
+    var root = document.documentElement;
+    return Q.still === '1' || !wantDrift || root.classList.contains('lite') || !root.classList.contains('ambient');
+  }
+  if (window.MutationObserver) {
+    var wasAmbient = false;
+    new MutationObserver(function () {
+      var now = document.documentElement.classList.contains('ambient');
+      if (now === wasAmbient) return;
+      wasAmbient = now;
+      if (backdrop) backdrop.setTiming(backdrop.opts.interval, stillNow());
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   }
 
   function applySettings(s) {

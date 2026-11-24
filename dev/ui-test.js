@@ -171,7 +171,7 @@ async function makeTestImages(browser, dir) {
     await sleep(400);
     s = await tvState(tv);
     check('OK on Denon switches to HDMI 4 (preview toast)', /would open Denon/.test(s.toast), s.toast);
-    check('opening something stops the live picture', !(await tv.eval(`document.documentElement.classList.contains('live-hole') || document.getElementById('live-card').classList.contains('on')`)));
+    check('opening something stops the live picture', !!(await waitFor(tv, `!(document.documentElement.classList.contains('live-hole') || document.getElementById('live-card').classList.contains('on'))`, 1500)));
 
     // Hide an app, then bring it back from the + panel.
     for (let i = 0; i < 3; i++) await tv.key(K.LEFT);   // Spotify, last of the apps

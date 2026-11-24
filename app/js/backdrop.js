@@ -108,7 +108,18 @@
     this.opts.interval = intervalMs;
     this.opts.still = still;
     if (this.timer && this.dueAt - Date.now() > intervalMs) this._schedule(intervalMs);
-    if (still) this.anims.forEach(function (a) { if (a) { try { a.cancel(); } catch (e) { /* ignore */ } } });
+    var self = this;
+    if (still) {
+      // Freeze where it is (no jump back), without keeping a moving layer.
+      this.anims.forEach(function (a, i) {
+        if (!a) return;
+        try { if (a.commitStyles) a.commitStyles(); a.cancel(); } catch (e) { /* ignore */ }
+        self.anims[i] = null;
+      });
+    } else if (this.front >= 0 && !this.anims[this.front] && this.current) {
+      var img = this.layers[this.front].querySelector('img');
+      if (img) this._kenBurns(this.front, img, this.current.key);
+    }
   };
 
   Backdrop.prototype._ensureOrder = function () {
